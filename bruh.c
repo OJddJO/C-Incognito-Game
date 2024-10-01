@@ -95,10 +95,10 @@ void print_board(Game *game) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             printf("|");
             Pawn *pawn = game->board[i][j];
-            // if (pawn->color == WHITE) printf("W");
-            // else if (pawn->color == BLACK) printf("B");
-            if (pawn->type == SPY) printf("S");
-            else if (pawn->type == SCOUT) printf("C");
+            if (pawn->color == WHITE) printf("W");
+            else if (pawn->color == BLACK) printf("B");
+            // if (pawn->type == SPY) printf("S");
+            // else if (pawn->type == SCOUT) printf("C");
             else if ((i == 0 && j == 4) || (i == 4 && j == 0)) printf("X");
             else printf(" ");
         }
@@ -113,6 +113,7 @@ void free_board(Game *game) {
             free(game->board[i][j]);
         }
     }
+    free(game);
 }
 
 int is_valid_move(Game *game, Movement *movement) {
@@ -134,12 +135,24 @@ int is_valid_move(Game *game, Movement *movement) {
     return 0; //valid movement
 }
 
-Movement *get_movement() { //get the movement from the player
+Movement *get_movement(Game *game) { //get the movement from the player
+    int movement_valid = 1;
     Movement *movement = (Movement *)malloc(sizeof(Movement));
-    printf("Enter movement (x1, y1) --> (x2, y2):\n");
-    fflush(stdin);
-    scanf("(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
-    printf("\n");
+    while (movement_valid != 0) {
+        printf("Enter movement (x1, y1) --> (x2, y2):\n");
+        fflush(stdin);
+        scanf("(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
+        printf("\n");
+        movement_valid = is_valid_move(game, movement);
+        if (movement_valid != 0) {
+            printf("Invalid movement. ");
+            if (movement_valid == 1) printf("Try again.\n");
+            else if (movement_valid == 2) printf("Cannot move to self's base.\n");
+            else if (movement_valid == 3) printf("No pawn at this position.\n");
+            else if (movement_valid == 4) printf("Cannot move opponent's pawn.\n");
+            else if (movement_valid == 5) printf("Cannot move to a taken spot.\n");
+        }
+    }
     return movement;
 }
 
@@ -208,7 +221,7 @@ int question_pawn(Game *game) {
     }
 }
 
-int check_win(Game *game) {
+int check_win(Game *game) { //check if a player won by reaching the opponent's base
     if (game->board[0][4]->color == WHITE) return 1;
     else if (game->board[4][0]->color == BLACK) return 2;
 }
@@ -233,27 +246,16 @@ int main(char argc, char *argv[]) {
         scanf("%d", &option);
 
         if (option == 1) { //move a pawn
-            movement_valid = 0;
-            Movement *movement = get_movement(); // gets the movement from the player
-            movement_valid = is_valid_move(game, movement);
-            if (movement_valid != 0) {
-                printf("Invalid movement. ");
-                if (movement_valid == 1) printf("Try again.\n");
-                else if (movement_valid == 2) printf("Cannot move to self's base.\n");
-                else if (movement_valid == 3) printf("No pawn at this position.\n");
-                else if (movement_valid == 4) printf("Cannot move opponent's pawn.\n");
-                else if (movement_valid == 5) printf("Cannot move to a taken spot.\n");
-            } else {
-                move_pawn(game, movement);
-                if (game->player == WHITE) game->player = BLACK;
-                else game->player = WHITE;
-                if (check_win(game) == 1) {
-                    printf("White wins !\n");
-                    playing = 0;
-                } else if (check_win(game) == 2) {
-                    printf("Black wins !\n");
-                    playing = 0;
-                }
+            Movement *movement = get_movement(game); // gets the movement from the player
+            move_pawn(game, movement);
+            if (game->player == WHITE) game->player = BLACK;
+            else game->player = WHITE;
+            if (check_win(game) == 1) {
+                printf("White wins !\n");
+                playing = 0;
+            } else if (check_win(game) == 2) {
+                printf("Black wins !\n");
+                playing = 0;
             }
             free(movement);
 
@@ -269,8 +271,6 @@ int main(char argc, char *argv[]) {
     }
 
     free_board(game);
-    free(game);
-
     system("pause");
     return 0;
 }

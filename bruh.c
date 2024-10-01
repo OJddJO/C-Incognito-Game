@@ -195,6 +195,7 @@ int question_pawn(Game *game) {
             interrogator = game->board[y_][x_];
             if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
             else if (interrogator->color != BLACK && interrogator->color != WHITE) printf("There is no pawn at this position.\n");
+            else if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) printf("The interrogator must be adjacent to the questioned pawn.\n");
             else valid_interrogator = 1;
         }
 

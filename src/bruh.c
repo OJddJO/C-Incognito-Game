@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdbool.h>
+#include <string.h>
 
 #define BOARD_SIZE 5
 
@@ -26,6 +27,67 @@ typedef struct _movement {
     Case start, end;
 } Movement;
 
+Game *init_game(Game *game);
+void init_pawns(Game *game);
+void move_pawn(Game *game, Movement *movement, bool save, FILE *fptr);
+void print_board(Game *game);
+void free_board(Game *game);
+int is_valid_move(Game *game, Movement *movement);
+Movement *get_movement(Game *game);
+bool check_adjacent(Game *game, int x, int y);
+int question_pawn(Game *game, bool save, FILE *fptr);
+int *check_win(Game *game);
+void save_move(FILE *fptr, Movement *movement);
+void save_question(FILE *fptr, int x, int y, int x_, int y_);
+void eval_question(Game *game, int x, int y, int x_, int y_);
+void read_save(FILE *fptr, Game *game, bool save, FILE *save_file);
+void cmd_game(bool save, FILE *save_file, bool load, FILE *load_file);
+
+/*# Main function*/
+int main(int argc, char *argv[]) {
+    // print argc
+    printf("argc: %d\n", argc);
+    // print argv
+    bool graphical = false;
+    bool save = false, load = true;
+    FILE *save_file, *load_file;
+    for (int i = 0; i < argc; i++) {
+        printf("argv[%d]: %s\n", i, argv[i]);
+        if (strcmp(argv[i], "-a") == 0) {
+            graphical = false;
+        }
+        if (strcmp(argv[i], "-g") == 0) {
+            graphical = true;
+        }
+        if (strcmp(argv[i], "-s") == 0) {
+            printf("Saving game to %s\n", argv[i+1]);
+            save = true;
+            save_file = fopen(argv[i+1], "w");
+            i++;
+        }
+        if (strcmp(argv[i], "-c") == 0) {
+            load = true;
+            load_file = fopen(argv[i+1], "r");
+            i++;
+        }
+    }
+
+    if (graphical) {
+        printf("Graphical mode not implemented yet.\n");
+    } else {
+        cmd_game(save, save_file, load, load_file);
+    }
+
+    if (save) fclose(save_file);
+
+    return 0;
+}
+
+/*# Inits the game board
+## Parameters
+`Game *game`: the game struct to initialize
+## Returns
+`Game *game`: the initialized game*/
 Game *init_game(Game *game) {
     game->player = WHITE;
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -37,6 +99,9 @@ Game *init_game(Game *game) {
     return game;
 }
 
+/*# Inits a pawn for each square of the board
+## Parameters
+`Game *game`: the game where the pawns need to be initialized*/
 void init_pawns(Game *game) {
     srand(time(NULL));
     int n = 0, s = rand()%5;
@@ -80,6 +145,12 @@ void init_pawns(Game *game) {
     else pawn->type = SCOUT;
 }
 
+/*# Moves a pawn from one square to another
+## Parameters
+`Game *game`: the game where the pawn is moved
+`Movement *movement`: the movement to be done
+`bool save`: if the movement needs to be saved
+`FILE *fptr`: the file where the movement needs to be saved*/
 void move_pawn(Game *game, Movement *movement, bool save, FILE *fptr) {
     free(game->board[movement->end.y][movement->end.x]);
     Pawn *pawn = game->board[movement->start.y][movement->start.x];
@@ -89,6 +160,9 @@ void move_pawn(Game *game, Movement *movement, bool save, FILE *fptr) {
     if (save) save_move(fptr, movement);
 }
 
+/*# Prints the game board
+## Parameters
+`Game *game`: the game to print*/
 void print_board(Game *game) {
     printf("\n");
     printf("  0 1 2 3 4\n");
@@ -109,6 +183,9 @@ void print_board(Game *game) {
     printf("\n");
 }
 
+/*# Frees the game board
+## Parameters
+- `Game *game`: the game to free*/
 void free_board(Game *game) {
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
@@ -118,6 +195,18 @@ void free_board(Game *game) {
     free(game);
 }
 
+/*# Checks if a movement is valid
+## Parameters
+- `Game *game`: the game where the movement is checked
+- `Movement *movement`: the movement to check
+## Returns
+- `int`:
+    0 if the movement is valid,
+    1 if the movement is out of bounds or not a movement,
+    2 if the movement is to the player's base, 
+    3 if there is no pawn at the start position, 
+    4 if the pawn is not the player's, 
+    5 if the movement is to a taken spot*/
 int is_valid_move(Game *game, Movement *movement) {
     int x = movement->start.x;
     int y = movement->start.y;
@@ -137,6 +226,11 @@ int is_valid_move(Game *game, Movement *movement) {
     return 0; //valid movement
 }
 
+/*# Gets the movement from the player
+## Parameters
+- `Game *game`: the game where the movement is done
+## Returns
+- `Movement *`: the movement done by the player*/
 Movement *get_movement(Game *game) { //get the movement from the player
     int movement_valid = 1;
     Movement *movement = (Movement *)malloc(sizeof(Movement));
@@ -161,6 +255,13 @@ Movement *get_movement(Game *game) { //get the movement from the player
     return movement;
 }
 
+/*# Checks if there is a pawn adjacent to the given position
+## Parameters
+- `Game *game`: the game where the position is checked
+- `int x`: the x position to check
+- `int y`: the y position to check
+## Returns
+- `bool`: true if there is a pawn adjacent to the given position, false otherwise*/
 bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
@@ -173,6 +274,16 @@ bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjace
     return false;
 }
 
+/*# Questions a pawn
+## Parameters
+- `Game *game`: the game where the pawn is questioned
+- `bool save`: if the question needs to be saved
+- `FILE *fptr`: the file where the question needs to be saved
+## Returns
+- `int`:
+    0 if the player can try again,
+    1 if the player found the spy and won,
+    2 if the player failed to find the spy*/
 int question_pawn(Game *game, bool save, FILE *fptr) { //question a pawn
     int x, y;
     int valid_question = 0;
@@ -235,6 +346,14 @@ int question_pawn(Game *game, bool save, FILE *fptr) { //question a pawn
     }
 }
 
+/*# Checks if a player won by reaching the opponent's base
+## Parameters
+- `Game *game`: the game to check
+## Returns
+- `int *`:
+    0 if no player won,
+    1 if black won,
+    2 if white won*/
 int *check_win(Game *game) { //check if a player won by reaching the opponent's base
     int *win = (int *)malloc(sizeof(int)); 
     if (game->board[0][4]->color == BLACK) *win = 1;
@@ -243,6 +362,10 @@ int *check_win(Game *game) { //check if a player won by reaching the opponent's 
     return win;
 }
 
+/*# Saves a movement to a file
+## Parameters
+- `FILE *fptr`: the file where the movement needs to be saved
+- `Movement *movement`: the movement to save*/
 void save_move(FILE *fptr, Movement *movement) {
     int x = movement->start.x;
     int y = movement->start.y;
@@ -256,8 +379,15 @@ void save_move(FILE *fptr, Movement *movement) {
     fprintf(fptr, "D %s->%s\n", start, end);
 }
 
+/*# Saves a question to a file
+## Parameters
+- `FILE *fptr`: the file where the question needs to be saved
+- `int x`: the x position of the questioned pawn
+- `int y`: the y position of the questioned pawn
+- `int x_`: the x position of the interrogator
+- `int y_`: the y position of the interrogator*/
 void save_question(FILE *fptr, int x, int y, int x_, int y_) {
-    char start[sizeof(char)*2], end[sizeof(char)*2];
+    char start[2], end[2];
     start[0] = x + 'a';
     start[1] = y + '1';
     end[0] = x_ + 'a';
@@ -265,6 +395,13 @@ void save_question(FILE *fptr, int x, int y, int x_, int y_) {
     fprintf(fptr, "I %s->%s\n", start, end);
 }
 
+/*# Evaluates a question for the save file only
+## Parameters
+- `Game *game`: the game where the question is evaluated
+- `int x`: the x position of the questioned pawn
+- `int y`: the y position of the questioned pawn
+- `int x_`: the x position of the interrogator
+- `int y_`: the y position of the interrogator*/
 void eval_question(Game *game, int x, int y, int x_, int y_) { //evaluate the question for the save file only
     Pawn *pawn = game->board[y][x];
     Pawn *interrogator = game->board[y_][x_];
@@ -281,6 +418,12 @@ void eval_question(Game *game, int x, int y, int x_, int y_) { //evaluate the qu
     }
 }
 
+/*# Reads a save file
+## Parameters
+- `FILE *fptr`: the file to read
+- `Game *game`: the game where the save file needs to be applied
+- `bool save`: if the save file needs to be saved
+- `FILE *save_file`: the file where the save file needs to be saved*/
 void read_save(FILE *fptr, Game *game, bool save, FILE *save_file) {
     char line[100];
     while (fgets(line, 100, fptr) != NULL) {
@@ -307,6 +450,12 @@ void read_save(FILE *fptr, Game *game, bool save, FILE *save_file) {
     }
 }
 
+/*# Starts a game in command line mode
+## Parameters
+- `bool save`: if the game needs to be saved
+- `FILE *save_file`: the file where the game needs to be saved
+- `bool load`: if the game needs to be loaded
+- `FILE *load_file`: the file where the game needs to be loaded*/
 void cmd_game(bool save, FILE *save_file, bool load, FILE *load_file) {
     Game *game = (Game *)malloc(sizeof(Game));
     init_game(game);
@@ -357,40 +506,4 @@ void cmd_game(bool save, FILE *save_file, bool load, FILE *load_file) {
     }
 
     free_board(game);
-}
-
-int main(char argc, char *argv[]) {
-
-    // print argc
-    printf("argc: %d\n", argc);
-    // print argv
-    bool graphical = false;
-    bool save = false, load = true;
-    FILE *save_file, *load_file;
-    for (int i = 0; i < argc; i++) {
-        printf("argv[%d]: %s\n", i, argv[i]);
-        if (argv[i] == "-a") {
-            graphical = false;
-        } else if (argv[i] == "-g") {
-            graphical = true;
-        } else if (argv[i] == "-s") {
-            save = true;
-            save_file = fopen(argv[i+1], "w");
-            i++;
-        } else if (argv[i] == "-c") {
-            load = true;
-            load_file = fopen(argv[i+1], "r");
-            i++;
-        }
-    }
-
-    if (graphical) {
-        printf("Graphical mode not implemented yet.\n");
-    } else {
-        cmd_game(save, save_file, load, load_file);
-    }
-
-    if (save) fclose(save_file);
-
-    return 0;
 }

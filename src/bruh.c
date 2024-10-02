@@ -239,7 +239,29 @@ int *check_win(Game *game) { //check if a player won by reaching the opponent's 
     return win;
 }
 
-int main(char argc, char *argv[]) {
+void save_move(FILE *fptr, Movement *movement) {
+    int x = movement->start.x;
+    int y = movement->start.y;
+    int x_ = movement->end.x;
+    int y_ = movement->end.y;
+    char start[sizeof(char)*2], end[sizeof(char)*2];
+    start[0] = x + 'a';
+    start[1] = y + '1';
+    end[0] = x_ + 'a';
+    end[1] = y_ + '1';
+    fprintf(fptr, "D %s->%s\n", start, end);
+}
+
+void save_question(FILE *fptr, int x, int y, int x_, int y_) {
+    char start[sizeof(char)*2], end[sizeof(char)*2];
+    start[0] = x + 'a';
+    start[1] = y + '1';
+    end[0] = x_ + 'a';
+    end[1] = y_ + '1';
+    fprintf(fptr, "I %s->%s\n", start, end);
+}
+
+void cmd_game(void) {
     Game *game = (Game *)malloc(sizeof(Game));
     init_game(game);
     init_pawns(game);
@@ -248,8 +270,8 @@ int main(char argc, char *argv[]) {
     while (playing) {
         print_board(game);
         int movement_valid = 0;
-        if (game->player == WHITE) printf("White's turn.\n");
-        else printf("Black's turn.\n");
+        if (game->player == WHITE) printf("White's turn. ");
+        else printf("Black's turn. ");
 
         printf("Do you want to:\n");
         printf("    1. Move a pawn\n");
@@ -289,6 +311,12 @@ int main(char argc, char *argv[]) {
     }
 
     free_board(game);
+}
+
+int main(char argc, char *argv[]) {
+
+    cmd_game();
+    
     system("pause");
     return 0;
 }

@@ -244,7 +244,7 @@ void save_move(FILE *fptr, Movement *movement) {
     int y = movement->start.y;
     int x_ = movement->end.x;
     int y_ = movement->end.y;
-    char start[sizeof(char)*2], end[sizeof(char)*2];
+    char start[2], end[2];
     start[0] = x + 'a';
     start[1] = y + '1';
     end[0] = x_ + 'a';
@@ -259,6 +259,48 @@ void save_question(FILE *fptr, int x, int y, int x_, int y_) {
     end[0] = x_ + 'a';
     end[1] = y_ + '1';
     fprintf(fptr, "I %s->%s\n", start, end);
+}
+
+void eval_question(Game *game, int x, int y, int x_, int y_) { //evaluate the question for the save file only
+    Pawn *pawn = game->board[y][x];
+    Pawn *interrogator = game->board[y_][x_];
+    if (pawn->type == SPY) {
+        if (interrogator->color == WHITE) printf("White wins !\n");
+        else printf("Black wins !\n");
+    } else {
+        if (interrogator->type == SPY) {
+            if (interrogator->color == WHITE) printf("Black wins !\n");
+            else printf("White wins !\n");
+        } else {
+            game->board[y_][x_] = (Pawn *)malloc(sizeof(Pawn));
+        }
+    }
+}
+
+void read_save(FILE *fptr, Game *game) {
+    char line[100];
+    while (fgets(line, 100, fptr) != NULL) {
+        if (line[0] == 'D') {
+            Movement *movement = (Movement *)malloc(sizeof(Movement));
+            char start[2], end[2];
+            sscanf(line, "D %s->%s", &start, &end);
+            movement->start.x = start[0] - 'a';
+            movement->start.y = start[1] - '1';
+            movement->end.x = end[0] - 'a';
+            movement->end.y = end[1] - '1';
+            move_pawn(game, movement);
+            free(movement);
+        } else if (line[0] == 'I') {
+            int x, y, x_, y_;
+            char questionned[2], interrogator[2];
+            sscanf(line, "I %s->%s", &questionned, &interrogator);
+            x = questionned[0] - 'a';
+            y = questionned[1] - '1';
+            x_ = interrogator[0] - 'a';
+            y_ = interrogator[1] - '1';
+            eval_question(game, x, y, x_, y_);
+        }
+    }
 }
 
 void cmd_game(void) {

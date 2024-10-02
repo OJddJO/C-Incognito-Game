@@ -141,7 +141,10 @@ Movement *get_movement(Game *game) { //get the movement from the player
     while (movement_valid != 0) {
         printf("Enter movement (x1, y1) --> (x2, y2):\n");
         fflush(stdin);
-        scanf("(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
+        // scanf("(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
+        char tmp[100];
+        fgets(tmp, 100, stdin);
+        sscanf(tmp, "(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
         printf("\n");
         movement_valid = is_valid_move(game, movement);
         if (movement_valid != 0) {
@@ -176,7 +179,10 @@ int question_pawn(Game *game) {
     while (!valid_question) { //get the position of the pawn to question
         printf("Which pawn do you want to question ? (x, y)\n");
         fflush(stdin);
-        scanf("(%d, %d)", &x, &y);
+        // scanf("(%d, %d)", &x, &y);
+        char tmp[100];
+        fgets(tmp, 100, stdin);
+        sscanf(tmp, "(%d, %d)", &x, &y);
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) printf("Out of bounds.\n");
         pawn = game->board[y][x];
         if (pawn->color == game->player) printf("Cannot question your own pawn.\n");
@@ -191,7 +197,10 @@ int question_pawn(Game *game) {
         while (!valid_interrogator) { //get the position of the interrogator
             printf("Which of your pawns is the interrogator ? (x, y)\n");
             fflush(stdin);
-            scanf("(%d, %d)", &x_, &y_);
+            // scanf("(%d, %d)", &x_, &y_);
+            char tmp[100];
+            fgets(tmp, 100, stdin);
+            sscanf(tmp, "(%d, %d)", &x_, &y_);
             interrogator = game->board[y_][x_];
             if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
             else if (interrogator->color != BLACK && interrogator->color != WHITE) printf("There is no pawn at this position.\n");
@@ -222,9 +231,12 @@ int question_pawn(Game *game) {
     }
 }
 
-int check_win(Game *game) { //check if a player won by reaching the opponent's base
-    if (game->board[0][4]->color == WHITE) return 1;
-    else if (game->board[4][0]->color == BLACK) return 2;
+int *check_win(Game *game) { //check if a player won by reaching the opponent's base
+    int *win = (int *)malloc(sizeof(int)); 
+    if (game->board[0][4]->color == BLACK) *win = 1;
+    else if (game->board[4][0]->color == WHITE) *win = 2;
+    else *win = 0;
+    return win;
 }
 
 int main(char argc, char *argv[]) {
@@ -244,23 +256,27 @@ int main(char argc, char *argv[]) {
         printf("    2. Question a pawn\n");
         fflush(stdin);
         int option;
-        scanf("%d", &option);
+        // scanf("%d", &option);
+        char tmp[100];
+        fgets(tmp, 100, stdin);
+        sscanf(tmp, "%d", &option);
 
         if (option == 1) { //move a pawn
             Movement *movement = get_movement(game); // gets the movement from the player
             move_pawn(game, movement);
             if (game->player == WHITE) game->player = BLACK;
             else game->player = WHITE;
-            if (check_win(game) == 1) {
-                printf("White wins !\n");
-                playing = 0;
-            } else if (check_win(game) == 2) {
+            int *win = check_win(game);
+            if (*win == 1) {
                 printf("Black wins !\n");
+                playing = 0;
+            } else if (*win == 2) {
+                printf("White wins !\n");
                 playing = 0;
             }
             free(movement);
-
-        } else if (option == 2) { //question a pawn
+        } 
+        else if (option == 2) { //question a pawn
             int found = 0;
             while (found == 0) found = question_pawn(game);
             if (found == 1) playing = 0;
@@ -268,7 +284,8 @@ int main(char argc, char *argv[]) {
                 if (game->player == WHITE) game->player = BLACK;
                 else game->player = WHITE;
             }
-        }
+        } 
+        else printf("Invalid option.\n");
     }
 
     free_board(game);

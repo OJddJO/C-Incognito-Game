@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
 
 #define BOARD_SIZE 5
 
@@ -79,12 +80,13 @@ void init_pawns(Game *game) {
     else pawn->type = SCOUT;
 }
 
-void move_pawn(Game *game, Movement *movement) {
+void move_pawn(Game *game, Movement *movement, bool save, FILE *fptr) {
     free(game->board[movement->end.y][movement->end.x]);
     Pawn *pawn = game->board[movement->start.y][movement->start.x];
     game->board[movement->end.y][movement->end.x] = pawn;
     Pawn *new_pawn = (Pawn *)malloc(sizeof(Pawn));
     game->board[movement->start.y][movement->start.x] = new_pawn;
+    if (save) save_move(fptr, movement);
 }
 
 void print_board(Game *game) {
@@ -159,19 +161,19 @@ Movement *get_movement(Game *game) { //get the movement from the player
     return movement;
 }
 
-int check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
+bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             if (x+j >= 0 && x+j < BOARD_SIZE && y+i >= 0 && y+i < BOARD_SIZE) {
                 Pawn *pawn = game->board[y+i][x+j];
-                if (pawn->color == game->player) return 1;
+                if (pawn->color == game->player) return true;
             }
         }
     }
-    return 0;
+    return false;
 }
 
-int question_pawn(Game *game) {
+int question_pawn(Game *game, bool save, FILE *fptr) { //question a pawn
     int x, y;
     int valid_question = 0;
     Pawn *pawn;
@@ -207,6 +209,8 @@ int question_pawn(Game *game) {
             else if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) printf("The interrogator must be adjacent to the questioned pawn.\n");
             else valid_interrogator = 1;
         }
+
+        if (save) save_question(fptr, x, y, x_, y_);
 
         if (pawn->type == SPY) { //if the questioned pawn is a spy
             printf("You found the spy !\n");
@@ -277,7 +281,7 @@ void eval_question(Game *game, int x, int y, int x_, int y_) { //evaluate the qu
     }
 }
 
-void read_save(FILE *fptr, Game *game) {
+void read_save(FILE *fptr, Game *game, bool save, FILE *save_file) {
     char line[100];
     while (fgets(line, 100, fptr) != NULL) {
         if (line[0] == 'D') {
@@ -288,7 +292,7 @@ void read_save(FILE *fptr, Game *game) {
             movement->start.y = start[1] - '1';
             movement->end.x = end[0] - 'a';
             movement->end.y = end[1] - '1';
-            move_pawn(game, movement);
+            move_pawn(game, movement, save, save_file);
             free(movement);
         } else if (line[0] == 'I') {
             int x, y, x_, y_;
@@ -303,7 +307,7 @@ void read_save(FILE *fptr, Game *game) {
     }
 }
 
-void cmd_game(void) {
+void cmd_game(bool save, FILE *save_file, bool load, FILE *load_file) {
     Game *game = (Game *)malloc(sizeof(Game));
     init_game(game);
     init_pawns(game);
@@ -327,7 +331,7 @@ void cmd_game(void) {
 
         if (option == 1) { //move a pawn
             Movement *movement = get_movement(game); // gets the movement from the player
-            move_pawn(game, movement);
+            move_pawn(game, movement, save, save_file);
             if (game->player == WHITE) game->player = BLACK;
             else game->player = WHITE;
             int *win = check_win(game);
@@ -342,7 +346,7 @@ void cmd_game(void) {
         } 
         else if (option == 2) { //question a pawn
             int found = 0;
-            while (found == 0) found = question_pawn(game);
+            while (found == 0) found = question_pawn(game, save, save_file);
             if (found == 1) playing = 0;
             else if (found == 2) {
                 if (game->player == WHITE) game->player = BLACK;
@@ -357,8 +361,36 @@ void cmd_game(void) {
 
 int main(char argc, char *argv[]) {
 
-    cmd_game();
-    
-    system("pause");
+    // print argc
+    printf("argc: %d\n", argc);
+    // print argv
+    bool graphical = false;
+    bool save = false, load = true;
+    FILE *save_file, *load_file;
+    for (int i = 0; i < argc; i++) {
+        printf("argv[%d]: %s\n", i, argv[i]);
+        if (argv[i] == "-a") {
+            graphical = false;
+        } else if (argv[i] == "-g") {
+            graphical = true;
+        } else if (argv[i] == "-s") {
+            save = true;
+            save_file = fopen(argv[i+1], "w");
+            i++;
+        } else if (argv[i] == "-c") {
+            load = true;
+            load_file = fopen(argv[i+1], "r");
+            i++;
+        }
+    }
+
+    if (graphical) {
+        printf("Graphical mode not implemented yet.\n");
+    } else {
+        cmd_game(save, save_file, load, load_file);
+    }
+
+    if (save) fclose(save_file);
+
     return 0;
 }

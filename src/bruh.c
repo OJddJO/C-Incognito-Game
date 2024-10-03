@@ -40,9 +40,9 @@ int *check_win(Game *game, bool save, char *save_file);
 void save_move(char *path, Movement *movement);
 void save_question(char *save_file, int x, int y, int x_, int y_);
 void save_win(char *save_file, int *win);
-void eval_question(Game *game, int x, int y, int x_, int y_);
+void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file);
 void replace_spies(Game *game, int x, int y, int x_, int y_);
-void read_save(FILE *load_file, Game *game, bool save, char *save_file);
+bool read_save(FILE *load_file, Game *game, bool save, char *save_file);
 void init_save(char *save_file, Game *game);
 void cmd_game(bool save, char *save_file, bool load, FILE *load_file);
 
@@ -50,7 +50,7 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file);
 int main(int argc, char *argv[]) {
     bool graphical = false, save = false, load = true;
     char *save_file;
-    FILE *load_file = fopen("save.inco", "r");
+    FILE *load_file = fopen("save2.inco", "r");
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-a") == 0) {
             graphical = false;
@@ -62,12 +62,21 @@ int main(int argc, char *argv[]) {
             printf("Saving game to '%s'\n", argv[i+1]);
             save = true;
             save_file = argv[i+1];
+            FILE *file = fopen(save_file, "w");
+            if (file == NULL) {
+                printf("Error: could not open file '%s'\n", argv[i+1]);
+                return 1;
+            }
             i++;
         }
         if (strcmp(argv[i], "-c") == 0) {
             printf("Loading game from '%s'\n", argv[i+1]);
             load = true;
             load_file = fopen(argv[i+1], "r");
+            if (load_file == NULL) {
+                printf("Error: could not open file '%s'\n", argv[i+1]);
+                return 1;
+            }
             i++;
         }
     }
@@ -339,7 +348,8 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
                 else printf("White wins !\n");
                 return 1; //end of game
             }
-            game->board[y_][x_] = (Pawn *)malloc(sizeof(Pawn));
+            free(game->board[y_][x_]);
+            game->board[y_][x_] = NULL;
             return 2; //player failed to find the spy
         }
 
@@ -361,8 +371,8 @@ int *check_win(Game *game, bool save, char *save_file) { //check if a player won
     int *win = (int *)malloc(sizeof(int)); 
     Pawn *black_base = game->board[4][0];
     Pawn *white_base = game->board[0][4];
-    if (white_base != NULL) if (white_base->color == BLACK) *win = 1;
-    else if (black_base != NULL) if (black_base->color == WHITE) *win = 2;
+    if (white_base != NULL) {if (white_base->color == BLACK) *win = 1;}
+    else if (black_base != NULL) {if (black_base->color == WHITE) *win = 2;}
     else *win = 0;
     if (save) save_win(save_file, win);
     return win;
@@ -391,12 +401,12 @@ void save_move(char *path, Movement *movement) {
 - `int y_`: the y position of the interrogator*/
 void save_question(char *save_file, int x, int y, int x_, int y_) {
     FILE *fptr = fopen(save_file, "a");
-    char sx, sy, ex, ey;
-    sx = x + 'a';
-    sy = y + '1';
-    ex = x_ + 'a';
-    ey = y_ + '1';
-    fprintf(fptr, "I %c%c->%c%c\n", sx, sy, ex, ey);
+    char qx, qy, ix, iy;
+    qx = x + 'a';
+    qy = y + '1';
+    ix = x_ + 'a';
+    iy = y_ + '1';
+    fprintf(fptr, "I %c%c->%c%c\n", ix, iy, qx, qy);
     fclose(fptr);
 }
 
@@ -417,8 +427,10 @@ void save_win(char *save_file, int *win) {
 - `int x`: the x position of the questioned pawn
 - `int y`: the y position of the questioned pawn
 - `int x_`: the x position of the interrogator
-- `int y_`: the y position of the interrogator*/
-void eval_question(Game *game, int x, int y, int x_, int y_) { //evaluate the question for the save file only
+- `int y_`: the y position of the interrogator
+- `bool save`: if the question needs to be saved
+- `char *save_file`: the file where the question needs to be saved*/
+void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file) { //evaluate the question for the save file only
     Pawn *pawn = game->board[y][x];
     Pawn *interrogator = game->board[y_][x_];
     if (pawn->type == SPY) {
@@ -429,9 +441,11 @@ void eval_question(Game *game, int x, int y, int x_, int y_) { //evaluate the qu
             if (interrogator->color == WHITE) printf("Black wins !\n");
             else printf("White wins !\n");
         } else {
-            game->board[y_][x_] = (Pawn *)malloc(sizeof(Pawn));
+            free(game->board[y_][x_]);
+            game->board[y_][x_] = NULL;
         }
     }
+    if (save) save_question(save_file, x, y, x_, y_);
 }
 
 /*# Replaces the spies on the board
@@ -458,48 +472,65 @@ void replace_spies(Game *game, int x, int y, int x_, int y_) {
 - `FILE *fptr`: the file to read
 - `Game *game`: the game where the save file needs to be applied
 - `bool save`: if the save file needs to be saved
-- `char *save_file`: the file where the save file needs to be saved*/
-void read_save(FILE *fptr, Game *game, bool save, char *save_file) {
-    char line[30];
+- `char *save_file`: the file where the save file needs to be saved
+## Returns
+- `bool`: true if the game is over, false otherwise*/
+bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
+    char line[30]; //readed line
     char x, y, x_, y_;
-    fscanf(fptr, "B %c%c", &x, &y);
+    fgets(line, 30, fptr);
+    sscanf(line, "B %c%c", &x, &y);
     int wx = x - 'a';
     int wy = y - '1';
-    fscanf(fptr, "N %c%c", &x, &y);
+    fgets(line, 30, fptr);
+    sscanf(line, "N %c%c", &x, &y);
     int bx = x - 'a';
     int by = y - '1';
     replace_spies(game, wx, wy, bx, by);
-    fgets(line, 30, fptr);
+
+    if (save) init_save(save_file, game); //save the initial state
+    fgets(line, 30, fptr); //skip the next line
+
     while (fgets(line, 30, fptr) != NULL) {
-        if (line[0] == 'D') {
-            sscanf(line, "D %c%c->%c%c", x, y, x_, y_);
-            int sx = x - 'a'; //movement start
-            int sy = y - '1';
-            int ex = x_ - 'a'; //movement end
-            int ey = y_ - '1';
-            Movement *movement = (Movement *)malloc(sizeof(Movement));
-            movement->start.x = sx;
-            movement->start.y = sy;
-            movement->end.x = ex;
-            movement->end.y = ex;
-            move_pawn(game, movement, save, save_file);
-            free(movement);
-        } else if (line[0] == 'I') {
-            sscanf(line, "I %c%c->%c%c", &x, &y, &x_, &y_);
-            int qx = x - 'a'; //questioned pawn
-            int qy = y - '1';
-            int ix = x_ - 'a'; //interrogator
-            int iy = y_ - '1';
-            eval_question(game, x, y, x_, y_);
-        } else if (line[0] == 'B' || line[0] == 'W') {
+        print_board(game);
+        if (line[0] == 'B' || line[0] == 'W') { //win
             if (line[0] == 'B') printf("Black wins !\n");
             else printf("White wins !\n");
-            break;
+            return true;
+        } else {
+            if (game->player == WHITE) printf("White's turn. "); //print player's turn
+            else printf("Black's turn. ");
+
+            if (line[0] == 'D') { //movement
+                sscanf(line, "D %c%c->%c%c", &x, &y, &x_, &y_);
+                int sx = x - 'a'; //movement start
+                int sy = y - '1';
+                int ex = x_ - 'a'; //movement end
+                int ey = y_ - '1';
+                Movement *movement = (Movement *)malloc(sizeof(Movement));
+                movement->start.x = sx;
+                movement->start.y = sy;
+                movement->end.x = ex;
+                movement->end.y = ey;
+                move_pawn(game, movement, save, save_file);
+                printf("Moved pawn from (%d, %d) to (%d, %d)\n", sx, sy, ex, ey);
+                free(movement);
+            }
+            else if (line[0] == 'I') { //question
+                sscanf(line, "I %c%c->%c%c", &x, &y, &x_, &y_);
+                int qx = x - 'a'; //questioned pawn
+                int qy = y - '1';
+                int ix = x_ - 'a'; //interrogator
+                int iy = y_ - '1';
+                eval_question(game, qx, qy, ix, iy, save, save_file);
+                printf("Questioned pawn at (%d, %d) with pawn at (%d, %d)\n", qx, qy, ix, iy);
+            }
         }
         if (game->player == WHITE) game->player = BLACK;
         else game->player = WHITE;
     }
     fclose(fptr);
+    return false;
 }
 
 /*# Inits a save file
@@ -537,13 +568,18 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
     init_game(game);
     init_pawns(game);
 
-    if (save) init_save(save_file, game);
-    if (load) read_save(load_file, game, save, save_file);
+    if (load) {
+        bool end_game = read_save(load_file, game, save, save_file);
+        if (end_game) {
+            free_board(game);
+            return;
+        }
+    }
+    else if (save) init_save(save_file, game);
 
     int playing = 1;
     while (playing) {
         print_board(game);
-        int movement_valid = 0;
         if (game->player == WHITE) printf("White's turn. ");
         else printf("Black's turn. ");
 

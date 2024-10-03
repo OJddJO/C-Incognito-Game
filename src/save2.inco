@@ -2,7 +2,8 @@ B c1
 N b5
 B
 D d1->b3
-I b4->b3
+I b3->b4
 D d2->b4
 D a3->a1
 D b4->a5
+W

@@ -29,6 +29,7 @@ typedef struct _movement {
 } Movement;
 
 Game *init_game(Game *game);
+int ediv(int a, int b);
 void init_pawns(Game *game);
 void move_pawn(Game *game, Movement *movement, bool save, char *save_file);
 void print_board(Game *game);
@@ -107,56 +108,26 @@ Game *init_game(Game *game) {
     return game;
 }
 
+/*# Divides two integers and rounds up
+## Parameters
+- `int a`: the dividend
+- `int b`: the divisor
+## Returns
+- `int`: the result of the division*/
+int ediv(int a, int b) {
+    return a/b + (a%b != 0);
+}
+
 /*# Inits a pawn for each square of the board
 ## Parameters
 `Game *game`: the game where the pawns need to be initialized*/
 void init_pawns(Game *game) {
     srand(time(NULL));
-    int n = 0, s = rand()%5;
-    for (int i = 0; i < 2; i++) {
+    int s = rand()%NB_PAWNS;
+    for (int i = 0; i < NB_PAWNS; i++) {
         Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        game->board[0][2+i] = pawn;
-        pawn->color = WHITE;
-        if (n == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        n++;
+        game->board[BOARD_SIZE/2)]
     }
-    for (int i = 0; i < 2; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        game->board[1+i][BOARD_SIZE-1] = pawn;
-        pawn->color = WHITE;
-        if (n == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        n++;
-    }
-    Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-    game->board[1][3] = pawn;
-    pawn->color = WHITE;
-    if (n == s) pawn->type = SPY;
-    else pawn->type = SCOUT;
-    n = 0;
-    s = rand()%5;
-    for (int i = 0; i < 2; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        game->board[BOARD_SIZE-1][1+i] = pawn;
-        pawn->color = BLACK;
-        if (n == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        n++;
-    }
-    for (int i = 0; i < 2; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn)); 
-        game->board[2+i][0] = pawn;
-        pawn->color = BLACK;
-        if (n == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        n++;
-    }
-    pawn = (Pawn *)malloc(sizeof(Pawn));
-    game->board[3][1] = pawn;
-    pawn->color = BLACK;
-    if (n == s) pawn->type = SPY;
-    else pawn->type = SCOUT;
 }
 
 /*# Moves a pawn from one square to another

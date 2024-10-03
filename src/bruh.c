@@ -92,8 +92,8 @@ Game *init_game(Game *game) {
     game->player = WHITE;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-            game->board[i][j] = pawn;
+            // Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+            game->board[i][j] = NULL;
         }
     }
     return game;
@@ -106,40 +106,46 @@ void init_pawns(Game *game) {
     srand(time(NULL));
     int n = 0, s = rand()%5;
     for (int i = 0; i < 2; i++) {
-        Pawn *pawn = game->board[0][2+i];
+        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+        game->board[0][2+i] = pawn;
         pawn->color = WHITE;
         if (n == s) pawn->type = SPY;
         else pawn->type = SCOUT;
         n++;
     }
     for (int i = 0; i < 2; i++) {
-        Pawn *pawn = game->board[1+i][BOARD_SIZE-1];
+        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+        game->board[1+i][BOARD_SIZE-1] = pawn;
         pawn->color = WHITE;
         if (n == s) pawn->type = SPY;
         else pawn->type = SCOUT;
         n++;
     }
-    Pawn *pawn = game->board[1][3];
+    Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+    game->board[1][3] = pawn;
     pawn->color = WHITE;
     if (n == s) pawn->type = SPY;
     else pawn->type = SCOUT;
     n = 0;
     s = rand()%5;
     for (int i = 0; i < 2; i++) {
-        Pawn *pawn = game->board[BOARD_SIZE-1][1+i];
+        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+        game->board[BOARD_SIZE-1][1+i] = pawn;
         pawn->color = BLACK;
         if (n == s) pawn->type = SPY;
         else pawn->type = SCOUT;
         n++;
     }
     for (int i = 0; i < 2; i++) {
-        Pawn *pawn = game->board[2+i][0];
+        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn)); 
+        game->board[2+i][0] = pawn;
         pawn->color = BLACK;
         if (n == s) pawn->type = SPY;
         else pawn->type = SCOUT;
         n++;
     }
-    pawn = game->board[3][1];
+    pawn = (Pawn *)malloc(sizeof(Pawn));
+    game->board[3][1] = pawn;
     pawn->color = BLACK;
     if (n == s) pawn->type = SPY;
     else pawn->type = SCOUT;
@@ -152,11 +158,9 @@ void init_pawns(Game *game) {
 `bool save`: if the movement needs to be saved
 `char *save_file`: the file where the movement needs to be saved*/
 void move_pawn(Game *game, Movement *movement, bool save, char *save_file) {
-    free(game->board[movement->end.y][movement->end.x]);
     Pawn *pawn = game->board[movement->start.y][movement->start.x];
     game->board[movement->end.y][movement->end.x] = pawn;
-    Pawn *new_pawn = (Pawn *)malloc(sizeof(Pawn));
-    game->board[movement->start.y][movement->start.x] = new_pawn;
+    game->board[movement->start.y][movement->start.x] = NULL;
     if (save) save_move(save_file, movement);
 }
 
@@ -170,13 +174,14 @@ void print_board(Game *game) {
         printf("%d", i);
         for (int j = 0; j < BOARD_SIZE; j++) {
             printf("|");
-            Pawn *pawn = game->board[i][j];
-            if (pawn->color == WHITE) printf("W");
-            else if (pawn->color == BLACK) printf("B");
-            // if (pawn->type == SPY) printf("S");
-            // else if (pawn->type == SCOUT) printf("C");
-            else if ((i == 0 && j == 4) || (i == 4 && j == 0)) printf("X");
-            else printf(" ");
+            if (game->board[i][j] == NULL) {if ((i == 0 && j == 4) || (i == 4 && j == 0)) printf("X"); else printf(" ");}
+            else {
+                Pawn *pawn = game->board[i][j];
+                if (pawn->color == WHITE) printf("W");
+                else if (pawn->color == BLACK) printf("B");
+                // if (pawn->type == SPY) printf("S");
+                // else if (pawn->type == SCOUT) printf("C");
+            }
         }
         printf("|\n");
     }
@@ -189,7 +194,7 @@ void print_board(Game *game) {
 void free_board(Game *game) {
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            free(game->board[i][j]);
+            if (game->board[i][j] != NULL) free(game->board[i][j]);
         }
     }
     free(game);
@@ -215,10 +220,10 @@ int is_valid_move(Game *game, Movement *movement) {
     if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE || x_ < 0 || x_ >= BOARD_SIZE || y_ < 0 || y_ >= BOARD_SIZE) return 1; //out of bounds or not a movement
     Pawn *start = game->board[y][x];
     Pawn *end = game->board[y_][x_];
-    if ((start->color == BLACK && (x_ == 0 && y_ == 4)) || (start->color == WHITE && (x_ == 4 && y_ == 0))) return 2; //cannot move to self's base
-    else if (start->color != BLACK && start->color != WHITE) return 3; //no pawn at this position
+    if (start == NULL) return 3; //no pawn at this position
+    else if ((start->color == BLACK && (x_ == 0 && y_ == 4)) || (start->color == WHITE && (x_ == 4 && y_ == 0))) return 2; //cannot move to self's base
     else if (start->color != game->player) return 4; //cannot move opponent's pawn
-    else if (end->color == BLACK || end->color == WHITE) return 5; //cannot move to a taken spot
+    else if (end != NULL) return 5; //cannot move to a taken spot
     // pawn can only move like a queen in chess
     if (x != x_ && y != y_) {
         if (abs(x-x_) != abs(y-y_)) return 1; //not a valid movement
@@ -267,7 +272,7 @@ bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjace
         for (int j = -1; j <= 1; j++) {
             if (x+j >= 0 && x+j < BOARD_SIZE && y+i >= 0 && y+i < BOARD_SIZE) {
                 Pawn *pawn = game->board[y+i][x+j];
-                if (pawn->color == game->player) return true;
+                if (pawn != NULL) if (pawn->color == game->player) return true;
             }
         }
     }
@@ -298,8 +303,8 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
         sscanf(tmp, "(%d, %d)", &x, &y);
         if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) printf("Out of bounds.\n");
         pawn = game->board[y][x];
-        if (pawn->color == game->player) printf("Cannot question your own pawn.\n");
-        else if (pawn->color != BLACK && pawn->color != WHITE) printf("There is no pawn at this position.\n");
+        if (pawn == NULL) printf("There is no pawn at this position.\n");
+        else if (pawn->color == game->player) printf("Cannot question your own pawn.\n");
         else valid_question = 1;
     }
 
@@ -315,8 +320,8 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
             fgets(tmp, 100, stdin);
             sscanf(tmp, "(%d, %d)", &x_, &y_);
             interrogator = game->board[y_][x_];
-            if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
-            else if (interrogator->color != BLACK && interrogator->color != WHITE) printf("There is no pawn at this position.\n");
+            if (interrogator == NULL) printf("There is no pawn at this position.\n");
+            else if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
             else if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) printf("The interrogator must be adjacent to the questioned pawn.\n");
             else valid_interrogator = 1;
         }
@@ -356,8 +361,10 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
     2 if white won*/
 int *check_win(Game *game) { //check if a player won by reaching the opponent's base
     int *win = (int *)malloc(sizeof(int)); 
-    if (game->board[0][4]->color == BLACK) *win = 1;
-    else if (game->board[4][0]->color == WHITE) *win = 2;
+    Pawn *black_base = game->board[4][0];
+    Pawn *white_base = game->board[0][4];
+    if (white_base != NULL) if (white_base->color == BLACK) *win = 1;
+    else if (black_base != NULL) if (black_base->color == WHITE) *win = 2;
     else *win = 0;
     return win;
 }
@@ -367,7 +374,7 @@ int *check_win(Game *game) { //check if a player won by reaching the opponent's 
 - `char *save_file`: the file where the movement needs to be saved
 - `Movement *movement`: the movement to save*/
 void save_move(char *path, Movement *movement) {
-    FILE *fptr = fopen(path, "w");
+    FILE *fptr = fopen(path, "a");
     char x = movement->start.x + 'a';
     char y = movement->start.y + '1';
     char x_ = movement->end.x + 'a';
@@ -384,7 +391,7 @@ void save_move(char *path, Movement *movement) {
 - `int x_`: the x position of the interrogator
 - `int y_`: the y position of the interrogator*/
 void save_question(char *save_file, int x, int y, int x_, int y_) {
-    FILE *fptr = fopen(save_file, "w");
+    FILE *fptr = fopen(save_file, "a");
     char sx, sy, ex, ey;
     sx = x + 'a';
     sy = y + '1';
@@ -437,12 +444,12 @@ void read_save(FILE *fptr, Game *game, bool save, char *save_file) {
 - `char *save_file`: the file where the save file needs to be saved
 - `Game *game`: the game to save*/
 void init_save(char *save_file, Game *game) {
-    FILE *fptr = fopen(save_file, "w+");
+    FILE *fptr = fopen(save_file, "w");
     char wx, wy, bx, by;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             Pawn *pawn = game->board[i][j];
-            if (pawn->color != WHITE && pawn->color != BLACK) continue;
+            if (pawn == NULL) continue;
             if (pawn->color == WHITE && pawn->type == SPY) {
                 wx = j + 'a';
                 wy = i + '1';
@@ -452,7 +459,7 @@ void init_save(char *save_file, Game *game) {
             }
         }
     }
-    fprintf(fptr, "B %c%c\nN %c%c\nB", wx, wy, bx, by);
+    fprintf(fptr, "B %c%c\nN %c%c\nB\n", wx, wy, bx, by);
     fclose(fptr);
 }
 
@@ -467,7 +474,7 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
     init_game(game);
     init_pawns(game);
 
-    // if (save) init_save(save_file, game);
+    if (save) init_save(save_file, game);
 
     int playing = 1;
     while (playing) {
@@ -499,6 +506,7 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
                 printf("White wins !\n");
                 playing = 0;
             }
+            free(win);
             free(movement);
         } 
         else if (option == 2) { //question a pawn

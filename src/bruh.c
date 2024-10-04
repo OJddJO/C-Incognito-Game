@@ -81,6 +81,16 @@ int main(int argc, char *argv[]) {
             }
             i++;
         }
+        if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
+            printf("Usage: %s [-a | -g] [-s save_file] [-c load_file]\n", argv[0]);
+            printf("Options:\n");
+            printf("  -h, --help: Display this help message\n");
+            printf("  -a: ASCII mode (default)\n");
+            printf("  -g: Graphical mode\n");
+            printf("  -s save_file: Save the game to save_file\n");
+            printf("  -c load_file: Load the game from load_file\n");
+            return 0;
+        }
     }
 
     if (graphical) {
@@ -190,11 +200,15 @@ void print_board(Game *game) {
         printf("%d", i); //print row number
         for (int j = 0; j < BOARD_SIZE; j++) { //print board
             printf("|");
-            if (game->board[i][j] == NULL) {if ((i == 0 && j == BOARD_SIZE-1) || (i == BOARD_SIZE-1 && j == 0)) printf("X"); else printf(" ");}
+            if (game->board[i][j] == NULL) {
+                if (i == 0 && j == BOARD_SIZE-1) printf("\033[30;107mX\033[0m"); 
+                else if (i == BOARD_SIZE-1 && j == 0) printf("\033[100mX\033[0m");
+                else printf(" ");
+            }
             else {
                 Pawn *pawn = game->board[i][j];
-                if (pawn->color == WHITE) printf("W");
-                else if (pawn->color == BLACK) printf("B");
+                if (pawn->color == WHITE) printf("\033[30;107mW\033[0m");
+                else if (pawn->color == BLACK) printf("\033[100mB\033[0m");
                 // if (pawn->type == SPY) printf("S");
                 // else if (pawn->type == SCOUT) printf("C");
             }

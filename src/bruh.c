@@ -48,7 +48,7 @@ bool read_save(FILE *load_file, Game *game, bool save, char *save_file);
 void init_save(char *save_file, Game *game);
 void cmd_game(bool save, char *save_file, bool load, FILE *load_file);
 
-/*# Main function*/
+/*Main function*/
 int main(int argc, char *argv[]) {
     bool graphical = false, save = false, load = false;
     char *save_file;
@@ -92,11 +92,11 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-/*# Inits the game board
-## Parameters
-`Game *game`: the game struct to initialize
-## Returns
-`Game *game`: the initialized game*/
+/**
+ * \brief Inits the game board
+ * \param game: the game struct to initialize
+ * \return initialized game struct
+ */
 Game *init_game(Game *game) {
     game->player = WHITE;
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -108,20 +108,21 @@ Game *init_game(Game *game) {
     return game;
 }
 
-/*# Divides two integers and rounds up
-## Parameters
-- `int a`: the dividend
-- `int b`: the divisor
-## Returns
-- `int`: the result of the division*/
+/**
+ * \brief Euclidean division of two integers
+ * \param a: the dividend
+ * \param b: the divisor
+ * \return the result of the division
+ */
 int ediv(int a, int b) {
     int res = (a-(a%b))/b;
     return res;
 }
 
-/*# Inits a pawn for each square of the board
-## Parameters
-`Game *game`: the game where the pawns need to be initialized*/
+/**
+ * \brief Initializes the pawns on the board
+ * \param game: the game to initialize
+ */
 void init_pawns(Game *game) {
     srand(time(NULL));
     int s = rand()%NB_PAWNS;
@@ -144,12 +145,13 @@ void init_pawns(Game *game) {
     print_board(game);
 }
 
-/*# Moves a pawn from one square to another
-## Parameters
-`Game *game`: the game where the pawn is moved
-`Movement *movement`: the movement to be done
-`bool save`: if the movement needs to be saved
-`char *save_file`: the file where the movement needs to be saved*/
+/**
+ * \brief Moves a pawn on the board
+ * \param game: the game where the movement is done
+ * \param movement: the movement to do
+ * \param save: whether to save the movement
+ * \param save_file: the file where to save the movement
+ */
 void move_pawn(Game *game, Movement *movement, bool save, char *save_file) {
     Pawn *pawn = game->board[movement->start.y][movement->start.x];
     game->board[movement->end.y][movement->end.x] = pawn;
@@ -157,9 +159,10 @@ void move_pawn(Game *game, Movement *movement, bool save, char *save_file) {
     if (save) save_move(save_file, movement);
 }
 
-/*# Prints the game board
-## Parameters
-`Game *game`: the game to print*/
+/**
+ * \brief Prints the board
+ * \param game: the game to print
+ */
 void print_board(Game *game) {
     printf("\n");
     printf("  0 1 2 3 4\n");
@@ -181,9 +184,10 @@ void print_board(Game *game) {
     printf("\n");
 }
 
-/*# Frees the game board
-## Parameters
-- `Game *game`: the game to free*/
+/**
+ * \brief Frees the game board
+ * \param game: the game to free
+ */
 void free_board(Game *game) {
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
@@ -193,18 +197,17 @@ void free_board(Game *game) {
     free(game);
 }
 
-/*# Checks if a movement is valid
-## Parameters
-- `Game *game`: the game where the movement is checked
-- `Movement *movement`: the movement to check
-## Returns
-- `int`:
-    0 if the movement is valid,
-    1 if the movement is out of bounds or not a movement,
-    2 if the movement is to the player's base, 
-    3 if there is no pawn at the start position, 
-    4 if the pawn is not the player's, 
-    5 if the movement is to a taken spot*/
+/**
+ * \brief Checks if a movement is valid
+ * \param game: the game where the movement is done
+ * \param movement: the movement to check
+ * \return 0 if the movement is valid,
+ *         1 if the movement is invalid,
+ *         2 if the movement is to the player's base,
+ *         3 if there is no pawn at the start position,
+ *         4 if the pawn is not the player's,
+ *         5 if the end position is taken
+ */
 int is_valid_move(Game *game, Movement *movement) {
     int x = movement->start.x;
     int y = movement->start.y;
@@ -224,11 +227,11 @@ int is_valid_move(Game *game, Movement *movement) {
     return 0; //valid movement
 }
 
-/*# Gets the movement from the player
-## Parameters
-- `Game *game`: the game where the movement is done
-## Returns
-- `Movement *`: the movement done by the player*/
+/**
+ * \brief Gets a movement from the player
+ * \param game: the game where the movement is done
+ * \return the movement
+ */
 Movement *get_movement(Game *game) { //get the movement from the player
     int movement_valid = 1;
     Movement *movement = (Movement *)malloc(sizeof(Movement));
@@ -253,13 +256,14 @@ Movement *get_movement(Game *game) { //get the movement from the player
     return movement;
 }
 
-/*# Checks if there is a pawn adjacent to the given position
-## Parameters
-- `Game *game`: the game where the position is checked
-- `int x`: the x position to check
-- `int y`: the y position to check
-## Returns
-- `bool`: true if there is a pawn adjacent to the given position, false otherwise*/
+/**
+ * \brief Checks if there is a pawn adjacent to the given position
+ * \param game: the game where the pawn is checked
+ * \param x: the x position of the pawn
+ * \param y: the y position of the pawn
+ * \return true if there is a pawn adjacent to the given position,
+ *         false otherwise
+ */
 bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
@@ -272,16 +276,15 @@ bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjace
     return false;
 }
 
-/*# Questions a pawn
-## Parameters
-- `Game *game`: the game where the pawn is questioned
-- `bool save`: if the question needs to be saved
-- `char *save_file`: the file where the question needs to be saved
-## Returns
-- `int`:
-    0 if the player can try again,
-    1 if the player found the spy and won,
-    2 if the player failed to find the spy*/
+/**
+ * \brief Questions a pawn
+ * \param game: the game where the question is done
+ * \param save: whether to save the question
+ * \param save_file: the file where to save the question
+ * \return 0 if the player can try again,
+ *         1 if the player won,
+ *         2 if the player failed to find the spy
+ */
 int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
     int x, y;
     int valid_question = 0;
@@ -345,14 +348,15 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
     }
 }
 
-/*# Checks if a player won by reaching the opponent's base
-## Parameters
-- `Game *game`: the game to check
-## Returns
-- `int *`:
-    0 if no player won,
-    1 if black won,
-    2 if white won*/
+/**
+ * \brief Checks if a player won by reaching the opponent's base
+ * \param game: the game where the win is checked
+ * \param save: whether to save the win
+ * \param save_file: the file where to save the win
+ * \return 0 if no player won,
+ *         1 if white won,
+ *         2 if black won
+ */
 int *check_win(Game *game, bool save, char *save_file) { //check if a player won by reaching the opponent's base
     int *win = (int *)malloc(sizeof(int)); 
     Pawn *black_base = game->board[4][0];
@@ -364,10 +368,11 @@ int *check_win(Game *game, bool save, char *save_file) { //check if a player won
     return win;
 }
 
-/*# Saves a movement to a file
-## Parameters
-- `char *save_file`: the file where the movement needs to be saved
-- `Movement *movement`: the movement to save*/
+/**
+ * \brief Saves a movement to a file
+ * \param path: the file where the movement needs to be saved
+ * \param movement: the movement to save
+ */
 void save_move(char *path, Movement *movement) {
     FILE *fptr = fopen(path, "a");
     char x = movement->start.x + 'a';
@@ -378,13 +383,14 @@ void save_move(char *path, Movement *movement) {
     fclose(fptr);
 }
 
-/*# Saves a question to a file
-## Parameters
-- `char *save_file`: the file where the question needs to be saved
-- `int x`: the x position of the questioned pawn
-- `int y`: the y position of the questioned pawn
-- `int x_`: the x position of the interrogator
-- `int y_`: the y position of the interrogator*/
+/**
+ * \brief Saves a question to a file
+ * \param save_file: the file where the question needs to be saved
+ * \param x: the x position of the questioned pawn
+ * \param y: the y position of the questioned pawn
+ * \param x_: the x position of the interrogator
+ * \param y_: the y position of the interrogator
+ */
 void save_question(char *save_file, int x, int y, int x_, int y_) {
     FILE *fptr = fopen(save_file, "a");
     char qx, qy, ix, iy;
@@ -396,10 +402,11 @@ void save_question(char *save_file, int x, int y, int x_, int y_) {
     fclose(fptr);
 }
 
-/*# Saves the win to a file
-## Parameters
-- `char *save_file`: the file where the win needs to be saved
-- `int *win`: the win to save*/
+/**
+ * \brief Saves a win to a file
+ * \param save_file: the file where the win needs to be saved
+ * \param win: the winner
+ */
 void save_win(char *save_file, int *win) {
     FILE *fptr = fopen(save_file, "a");
     if (*win == 1) fprintf(fptr, "B\n");
@@ -407,15 +414,16 @@ void save_win(char *save_file, int *win) {
     fclose(fptr);
 }
 
-/*# Evaluates a question for the save file only
-## Parameters
-- `Game *game`: the game where the question is evaluated
-- `int x`: the x position of the questioned pawn
-- `int y`: the y position of the questioned pawn
-- `int x_`: the x position of the interrogator
-- `int y_`: the y position of the interrogator
-- `bool save`: if the question needs to be saved
-- `char *save_file`: the file where the question needs to be saved*/
+/**
+ * \brief Evaluates a question (for load save file purposes)
+ * \param game: the game where the question is evaluated
+ * \param x: the x position of the questioned pawn
+ * \param y: the y position of the questioned pawn
+ * \param x_: the x position of the interrogator
+ * \param y_: the y position of the interrogator
+ * \param save: whether to save the question
+ * \param save_file: the file where to save the question
+ */
 void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file) { //evaluate the question for the save file only
     Pawn *pawn = game->board[y][x];
     Pawn *interrogator = game->board[y_][x_];
@@ -434,13 +442,14 @@ void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *sa
     if (save) save_question(save_file, x, y, x_, y_);
 }
 
-/*# Replaces the spies on the board
-## Parameters
-- `Game *game`: the game where the spies need to be replaced
-- `int x`: the x position of the white spy
-- `int y`: the y position of the white spy
-- `int x_`: the x position of the black spy
-- `int y_`: the y position of the black spy*/
+/**
+ * \brief Relocates the spies on the board
+ * \param game: the game where the spies need to be relocated
+ * \param x: the x position of the white spy
+ * \param y: the y position of the white spy
+ * \param x_: the x position of the black spy
+ * \param y_: the y position of the black spy
+ */
 void replace_spies(Game *game, int x, int y, int x_, int y_) {
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
@@ -453,14 +462,15 @@ void replace_spies(Game *game, int x, int y, int x_, int y_) {
     game->board[y_][x_]->type = SPY;
 }
 
-/*# Reads a save file
-## Parameters
-- `FILE *fptr`: the file to read
-- `Game *game`: the game where the save file needs to be applied
-- `bool save`: if the save file needs to be saved
-- `char *save_file`: the file where the save file needs to be saved
-## Returns
-- `bool`: true if the game is over, false otherwise*/
+/**
+ * \brief Reads a save file
+ * \param fptr: the file where the save file needs to be read
+ * \param game: the game to update
+ * \param save: whether to save the initial state
+ * \param save_file: the file where to save the initial state
+ * \return true if the game is over,
+ *         false otherwise
+ */
 bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
     char line[30]; //readed line
     char x, y, x_, y_;
@@ -519,10 +529,11 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
     return false;
 }
 
-/*# Inits a save file
-## Parameters
-- `char *save_file`: the file where the save file needs to be saved
-- `Game *game`: the game to save*/
+/**
+ * \brief Initializes the save file
+ * \param save_file: the file where the game needs to be saved
+ * \param game: the game to save
+ */
 void init_save(char *save_file, Game *game) {
     FILE *fptr = fopen(save_file, "w");
     char wx, wy, bx, by;
@@ -543,12 +554,13 @@ void init_save(char *save_file, Game *game) {
     fclose(fptr);
 }
 
-/*# Starts a game in command line mode
-## Parameters
-- `bool save`: if the game needs to be saved
-- `char *save_file`: the file where the game needs to be saved
-- `bool load`: if the game needs to be loaded
-- `FILE *load_file`: the file where the game needs to be loaded*/
+/**
+ * \brief Starts a game in command line mode
+ * \param save: whether to save the game
+ * \param save_file: the file where to save the game
+ * \param load: whether to load a game
+ * \param load_file: the file where to load the game
+ */
 void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
     Game *game = (Game *)malloc(sizeof(Game));
     init_game(game);

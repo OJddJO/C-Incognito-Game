@@ -115,8 +115,7 @@ Game *init_game(Game *game) {
  * \return the result of the division
  */
 int ediv(int a, int b) {
-    int res = (a-(a%b))/b;
-    return res;
+    return (a-(a%b))/b;
 }
 
 /**
@@ -125,24 +124,42 @@ int ediv(int a, int b) {
  */
 void init_pawns(Game *game) {
     srand(time(NULL));
-    int s = rand()%NB_PAWNS;
-    for (int i = 0; i < NB_PAWNS; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        pawn->color = WHITE;
-        if (i == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        game->board[ediv(i, 2)][ediv(BOARD_SIZE, 2) + ediv(i, 2) + i%2] = pawn;
+    int r = BOARD_SIZE-3; //number of pawns in a row
+    int c = 0; //column
+    int n = 0; //number of pawns placed
+    int s = rand()%NB_PAWNS; //spy position
+    for (int i = 0; i < BOARD_SIZE-2; i++) {
+        for (int j = 0; j < r; j++) {
+            Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+            pawn->color = WHITE;
+            if (i == s) pawn->type = SPY;
+            else pawn->type = SCOUT;
+            game->board[c][2+c+j] = pawn;
+            if (++n == NB_PAWNS) break;
+        }
+        c++;
+        if (c > 1) r = BOARD_SIZE-3 - (c-1);
+        else r = BOARD_SIZE-3;
     }
+    // print_board(game); //debug
+    r = BOARD_SIZE-3;
+    c = 0;
+    n = 0;
     s = rand()%NB_PAWNS;
-    for (int i = 0; i < NB_PAWNS; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        pawn->color = BLACK;
-        if (i == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        printf("%d", i);
-        game->board[BOARD_SIZE -1 - ediv(i, 2)][BOARD_SIZE -1 - ediv(BOARD_SIZE, 2) - ediv(i, 2) - i%2] = pawn;
+    for (int i = 0; i < BOARD_SIZE-2; i++) {
+        for (int j = 0; j < r; j++) {
+            Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
+            pawn->color = BLACK;
+            if (i == s) pawn->type = SPY;
+            else pawn->type = SCOUT;
+            game->board[BOARD_SIZE-1-c][BOARD_SIZE-3-c-j] = pawn;
+            if (++n == NB_PAWNS) break;
+        }
+        c++;
+        if (c > 1) r = BOARD_SIZE-3 - (c-1);
+        else r = BOARD_SIZE-3;
     }
-    print_board(game);
+    // print_board(game); //debug
 }
 
 /**
@@ -164,13 +181,16 @@ void move_pawn(Game *game, Movement *movement, bool save, char *save_file) {
  * \param game: the game to print
  */
 void print_board(Game *game) {
+    printf("\n ");
+    for (int i = 0; i < BOARD_SIZE; i++) { //print column numbers
+        printf(" %d", i);
+    }
     printf("\n");
-    printf("  0 1 2 3 4\n");
     for (int i = 0; i < BOARD_SIZE; i++) {
-        printf("%d", i);
-        for (int j = 0; j < BOARD_SIZE; j++) {
+        printf("%d", i); //print row number
+        for (int j = 0; j < BOARD_SIZE; j++) { //print board
             printf("|");
-            if (game->board[i][j] == NULL) {if ((i == 0 && j == 4) || (i == 4 && j == 0)) printf("X"); else printf(" ");}
+            if (game->board[i][j] == NULL) {if ((i == 0 && j == BOARD_SIZE-1) || (i == BOARD_SIZE-1 && j == 0)) printf("X"); else printf(" ");}
             else {
                 Pawn *pawn = game->board[i][j];
                 if (pawn->color == WHITE) printf("W");

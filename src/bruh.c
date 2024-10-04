@@ -5,7 +5,7 @@
 #include <string.h>
 
 #define BOARD_SIZE 5
-#define NB_PAWNS (BOARD_SIZE-1)*(BOARD_SIZE-2)/2
+#define NB_PAWNS (BOARD_SIZE-1)*(BOARD_SIZE-2)/2 - 1
 
 typedef enum _color {WHITE, BLACK} Color;
 typedef enum _type {SPY, SCOUT} Type;
@@ -29,6 +29,7 @@ typedef struct _movement {
 } Movement;
 
 Game *init_game(Game *game);
+int ediv(int a, int b);
 void init_pawns(Game *game);
 void move_pawn(Game *game, Movement *movement, bool save, char *save_file);
 void print_board(Game *game);
@@ -49,9 +50,9 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file);
 
 /*# Main function*/
 int main(int argc, char *argv[]) {
-    bool graphical = false, save = false, load = true;
+    bool graphical = false, save = false, load = false;
     char *save_file;
-    FILE *load_file = fopen("save2.inco", "r");
+    FILE *load_file;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-a") == 0) {
             graphical = false;
@@ -107,56 +108,40 @@ Game *init_game(Game *game) {
     return game;
 }
 
+/*# Divides two integers and rounds up
+## Parameters
+- `int a`: the dividend
+- `int b`: the divisor
+## Returns
+- `int`: the result of the division*/
+int ediv(int a, int b) {
+    int res = (a-(a%b))/b;
+    return res;
+}
+
 /*# Inits a pawn for each square of the board
 ## Parameters
 `Game *game`: the game where the pawns need to be initialized*/
 void init_pawns(Game *game) {
     srand(time(NULL));
-    int n = 0, s = rand()%5;
-    for (int i = 0; i < 2; i++) {
+    int s = rand()%NB_PAWNS;
+    for (int i = 0; i < NB_PAWNS; i++) {
         Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        game->board[0][2+i] = pawn;
         pawn->color = WHITE;
-        if (n == s) pawn->type = SPY;
+        if (i == s) pawn->type = SPY;
         else pawn->type = SCOUT;
-        n++;
+        game->board[ediv(i, 2)][ediv(BOARD_SIZE, 2) + ediv(i, 2) + i%2] = pawn;
     }
-    for (int i = 0; i < 2; i++) {
+    s = rand()%NB_PAWNS;
+    for (int i = 0; i < NB_PAWNS; i++) {
         Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        game->board[1+i][BOARD_SIZE-1] = pawn;
-        pawn->color = WHITE;
-        if (n == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        n++;
-    }
-    Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-    game->board[1][3] = pawn;
-    pawn->color = WHITE;
-    if (n == s) pawn->type = SPY;
-    else pawn->type = SCOUT;
-    n = 0;
-    s = rand()%5;
-    for (int i = 0; i < 2; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
-        game->board[BOARD_SIZE-1][1+i] = pawn;
         pawn->color = BLACK;
-        if (n == s) pawn->type = SPY;
+        if (i == s) pawn->type = SPY;
         else pawn->type = SCOUT;
-        n++;
+        printf("%d", i);
+        game->board[BOARD_SIZE -1 - ediv(i, 2)][BOARD_SIZE -1 - ediv(BOARD_SIZE, 2) - ediv(i, 2) - i%2] = pawn;
     }
-    for (int i = 0; i < 2; i++) {
-        Pawn *pawn = (Pawn *)malloc(sizeof(Pawn)); 
-        game->board[2+i][0] = pawn;
-        pawn->color = BLACK;
-        if (n == s) pawn->type = SPY;
-        else pawn->type = SCOUT;
-        n++;
-    }
-    pawn = (Pawn *)malloc(sizeof(Pawn));
-    game->board[3][1] = pawn;
-    pawn->color = BLACK;
-    if (n == s) pawn->type = SPY;
-    else pawn->type = SCOUT;
+    print_board(game);
 }
 
 /*# Moves a pawn from one square to another

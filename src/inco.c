@@ -714,13 +714,12 @@ void draw_board(SDL_Renderer *renderer, Game *game) {
                     text_color = (SDL_Color){255, 255, 255};
                 }
                 SDL_RenderFillRect(renderer, &rect);
-                SDL_Surface *text_surface;
-                text_surface = TTF_RenderText_Solid(font, "", text_color);
-                if (game->board[j][i]->type == SPY) {
-                    text_surface = TTF_RenderText_Solid(font, "S", text_color);
-                } else if (game->board[j][i]->type == SCOUT) {
-                    text_surface = TTF_RenderText_Solid(font, "C", text_color);
-                }
+                SDL_Surface *text_surface = TTF_RenderText_Solid(font, "P", text_color);
+                SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+                SDL_Rect text_rect = {rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
+                SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+                SDL_FreeSurface(text_surface);
+                SDL_DestroyTexture(text_texture);
             }
         }
     }

@@ -344,8 +344,8 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
  * \param save: whether to save the win
  * \param save_file: the file where to save the win
  * \return 0 if no player won,
- *         1 if white won,
- *         2 if black won
+ *         1 if black won,
+ *         2 if white won
  */
 int *check_win(Game *game, bool save, char *save_file) { //check if a player won by reaching the opponent's base
     int *win = (int *)malloc(sizeof(int)); 
@@ -482,14 +482,14 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
         if (line[0] == 'B' || line[0] == 'W') { //win
             int win;
             if (line[0] == 'B') {
-                win = 2;
+                win = 1;
                 printf("Black wins !\n");
             }
             else {
-                win = 1;
+                win = 2;
                 printf("White wins !\n");
             }
-            save_win(save_file, &win);
+            if (save) save_win(save_file, &win);
             return true;
         } else {
             if (game->player == WHITE) printf("White's turn. "); //print player's turn

@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Wall -g
 
-bruh: .\src\bruh.c
+bruh:
 	$(CC) $(CFLAGS) -o .\src\bruh.exe .\src\bruh.c
 
 clean:

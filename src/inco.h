@@ -1,5 +1,5 @@
-#ifndef BRUH_H
-#define BRUH_H
+#ifndef INCO_H
+#define INCO_H
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -188,6 +188,14 @@ int is_valid_move(Game *game, Movement *movement) {
     if (x != x_ && y != y_) {
         if (abs(x-x_) != abs(y-y_)) return 1; //not a valid movement
     }
+    Direction dir;
+    dir.x = 1 - 2*(x_ - x < x);
+    dir.y = 1 - 2*(y_ - y < y);
+    while (x != x_ && y != y_) {
+        x += dir.x;
+        y += dir.y;
+        if (game->board[y][x] != NULL) return 1; //invalid movement
+    }
     return 0; //valid movement
 }
 

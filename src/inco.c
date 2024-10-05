@@ -2,7 +2,7 @@
 
 /*Main function*/
 int main(int argc, char *argv[]) {
-    bool graphical = true, save = false, load = false;
+    bool graphical = false, save = false, load = false;
     char *save_file;
     FILE *load_file;
     char *load_file_name;
@@ -649,17 +649,17 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) { //question a paw
  * Graphical functions***********************************
  ********************************************************/
 
-/**
- * \brief Initializes the window
- * \param window: the window to initialize
- * \return the window surface
- */
-SDL_Surface *init_window(SDL_Window *window) {
-    SDL_Surface *surface = SDL_GetWindowSurface(window);
-    SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 20, 20, 40));
-    SDL_UpdateWindowSurface(window);
-    return surface;
-}
+// /**
+//  * \brief Initializes the window
+//  * \param window: the window to initialize
+//  * \param renderer: the renderer to initialize
+//  */
+// void init_window(SDL_Window *window, SDL_Renderer *renderer) {
+//     SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
+//     SDL_RenderFillRect(renderer, NULL);
+//     SDL_UpdateWindowSurface(window);
+//     SDL_RenderPresent(renderer);
+// }
 
 /**
  * \brief Draws the board
@@ -669,6 +669,12 @@ SDL_Surface *init_window(SDL_Window *window) {
 void draw_board(SDL_Renderer *renderer, Game *game) {
     SDL_Rect rect;
     TTF_Font *font = TTF_OpenFont("righteous.ttf", 52/BOARD_SIZE*5);
+    if (font == NULL) {
+        fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
+        return;
+    }
+    SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
+    SDL_RenderFillRect(renderer, NULL);
     int margin = 10;
     int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -688,12 +694,16 @@ void draw_board(SDL_Renderer *renderer, Game *game) {
                 bool is_black_base = (i == 0 && j == BOARD_SIZE-1);
                 bool is_white_base = (i == BOARD_SIZE-1 && j == 0);
                 if (is_black_base) {
-                    SDL_SetRenderDrawColor(renderer, 80, 80, 80, 255);
-                    text_color = (SDL_Color){255, 255, 255};
+                    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+                    text_color.r = 220;
+                    text_color.g = 220;
+                    text_color.b = 220;
                 }
                 else if (is_white_base) {
-                    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-                    text_color = (SDL_Color){0, 0, 0};
+                    SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+                    text_color.r = 50;
+                    text_color.g = 50;
+                    text_color.b = 50;
                 }
                 if (is_black_base || is_white_base) {
                     SDL_RenderFillRect(renderer, &rect);
@@ -707,16 +717,24 @@ void draw_board(SDL_Renderer *renderer, Game *game) {
             } else {
                 SDL_Color text_color;
                 if (game->board[j][i]->color == WHITE) {
-                    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
-                    text_color = (SDL_Color){0, 0, 0};
+                    SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+                    text_color.r = 50;
+                    text_color.g = 50;
+                    text_color.b = 50;
                 } else {
-                    SDL_SetRenderDrawColor(renderer, 80, 80, 80, 255);
-                    text_color = (SDL_Color){255, 255, 255};
+                    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+                    text_color.r = 220;
+                    text_color.g = 220;
+                    text_color.b = 220;
                 }
                 SDL_RenderFillRect(renderer, &rect);
                 SDL_Surface *text_surface = TTF_RenderText_Solid(font, "P", text_color);
                 SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-                SDL_Rect text_rect = {rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
+                SDL_Rect text_rect;
+                text_rect.x = rect.x + (rect.w - text_surface->w)/2;
+                text_rect.y = rect.y + (rect.h - text_surface->h)/2;
+                text_rect.w = text_surface->w;
+                text_rect.h = text_surface->h;
                 SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
                 SDL_FreeSurface(text_surface);
                 SDL_DestroyTexture(text_texture);
@@ -754,7 +772,11 @@ void graphical_game(bool save, char *save_file, bool load, FILE *load_file) {
         return;
     }
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    init_window(window);
+    if (renderer == NULL) {
+        fprintf(stderr, "Error: could not create renderer: %s\n", SDL_GetError());
+        return;
+    }
+    // init_window(window, renderer);
     draw_board(renderer, game);
 
     SDL_Delay(3000);

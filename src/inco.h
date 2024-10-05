@@ -58,7 +58,7 @@ Movement *cmd_get_movement(Game *game);
 int cmd_question_pawn(Game *game, bool save, char *save_file);
 
 void graphical_game(bool save, char *save_file, bool load, FILE *load_file);
-SDL_Surface *init_window(SDL_Window *window);
+// void init_window(SDL_Window *window, SDL_Renderer *renderer);
 void draw_board(SDL_Renderer *renderer, Game *game);
 
 #endif // BRUH_H

@@ -6,6 +6,7 @@
 #include <time.h>
 #include <stdbool.h>
 #include <string.h>
+#include <SDL2/SDL.h>
 
 #define BOARD_SIZE 5
 #define NB_PAWNS (BOARD_SIZE-1)*(BOARD_SIZE-2)/2 - 1

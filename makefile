@@ -1,14 +1,14 @@
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -Wall -g 
 
 bruh:
-	$(CC) $(CFLAGS) -o .\src\bruh.exe .\src\bruh.c
+	$(CC) $(CFLAGS) -o .\bin\bruh.exe .\src\bruh.c -I include -L lib -lmingw32 -lSDL2main -lSDL2
 
 clean:
 ifeq ($(OS),Windows_NT)
-	del /F .\src\bruh.exe
+	del /F .\bin\bruh.exe
 else
-	rm -f .\src\bruh.exe
+	rm -f .\bin\bruh.exe
 endif
 
 all: bruh

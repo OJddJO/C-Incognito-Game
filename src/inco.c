@@ -2,7 +2,7 @@
 
 /*Main function*/
 int main(int argc, char *argv[]) {
-    bool graphical = false, save = false, load = false;
+    bool graphical = true, save = false, load = false;
     char *save_file;
     FILE *load_file;
     char *load_file_name;
@@ -668,6 +668,7 @@ SDL_Surface *init_window(SDL_Window *window) {
  */
 void draw_board(SDL_Window *window, SDL_Surface *surface, Game *game) {
     SDL_Rect rect;
+    TTF_Font *font = TTF_OpenFont("assets/Roboto-Regular.ttf", 24);
     int margin = 10;
     int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -677,13 +678,27 @@ void draw_board(SDL_Window *window, SDL_Surface *surface, Game *game) {
             rect.w = rect_size;
             rect.h = rect_size;
             if (game->board[j][i] == NULL) {
-                SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 30, 30, 50));
-                if (i == 0 && j == BOARD_SIZE-1) ;
-                else if (i == BOARD_SIZE-1 && j == 0) SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 100, 100, 100));
+                if (i == 0 && j == BOARD_SIZE-1){
+                    SDL_Color color = {255, 255, 255};
+                    SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 80, 80, 80));
+                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", color);
+                    SDL_BlitSurface(text_surface, NULL, surface, &rect);
+                    SDL_FreeSurface(text_surface);
+                }
+                else if (i == BOARD_SIZE-1 && j == 0) {
+                    SDL_Color color = {100, 100, 100};
+                    SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 200, 200, 200));
+                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", color);
+                    SDL_BlitSurface(text_surface, NULL, surface, &rect);
+                    SDL_FreeSurface(text_surface);
+                } else SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 30, 30, 50));
+            } else {
+
             }
         }
     }
     SDL_UpdateWindowSurface(window);
+    TTF_CloseFont(font);
 }
 
 /**
@@ -702,12 +717,17 @@ void graphical_game(bool save, char *save_file, bool load, FILE *load_file) {
         fprintf(stderr, "Error: could not initialize SDL: %s\n", SDL_GetError());
         return;
     }
-    
+    if (TTF_Init() != 0) {
+        fprintf(stderr, "Error: could not initialize TTF: %s\n", TTF_GetError());
+        return;
+    }
+
     SDL_Window *window = SDL_CreateWindow("Incognito", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 500, 500, 0);
     if (window == NULL) {
         fprintf(stderr, "Error: could not create window: %s\n", SDL_GetError());
         return;
     }
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
     SDL_Surface *surface = init_window(window);
     draw_board(window, surface, game);
 

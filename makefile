@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -g 
 
 inco:
-	$(CC) $(CFLAGS) -o .\bin\inco.exe .\src\inco.c -I include -L lib -lmingw32 -lSDL2main -lSDL2
+	$(CC) $(CFLAGS) -o .\bin\inco.exe .\src\inco.c -I include -L lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_image
 
 clean:
 ifeq ($(OS),Windows_NT)

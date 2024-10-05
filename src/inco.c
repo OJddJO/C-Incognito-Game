@@ -5,6 +5,7 @@ int main(int argc, char *argv[]) {
     bool graphical = false, save = false, load = false;
     char *save_file;
     FILE *load_file;
+    char *load_file_name;
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-a") == 0) {
             graphical = false;
@@ -21,11 +22,13 @@ int main(int argc, char *argv[]) {
                 printf("Error: could not open file '%s'\n", argv[i+1]);
                 return 1;
             }
+            fclose(file);
             i++;
         }
         if (strcmp(argv[i], "-c") == 0) {
             printf("Loading game from '%s'\n", argv[i+1]);
             load = true;
+            load_file_name = argv[i+1];
             load_file = fopen(argv[i+1], "r");
             if (load_file == NULL) {
                 printf("Error: could not open file '%s'\n", argv[i+1]);
@@ -45,8 +48,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    if (load && save) {
+        if (strcmp(save_file, load_file_name) == 0) {
+            printf("Error: cannot load and save to the same file\n");
+            return 1;
+        }
+    }
+
     if (graphical) {
-        printf("Graphical mode not implemented yet.\n");
+        graphical_game(save, save_file, load, load_file);
     } else {
         cmd_game(save, save_file, load, load_file);
     }
@@ -139,38 +149,6 @@ void move_pawn(Game *game, Movement *movement, bool save, char *save_file) {
 }
 
 /**
- * \brief Prints the board
- * \param game: the game to print
- */
-void print_board(Game *game) {
-    printf("\n ");
-    for (int i = 0; i < BOARD_SIZE; i++) { //print column numbers
-        printf(" %d", i);
-    }
-    printf("\n");
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        printf("%d", i); //print row number
-        for (int j = 0; j < BOARD_SIZE; j++) { //print board
-            printf("|");
-            if (game->board[i][j] == NULL) {
-                if (i == 0 && j == BOARD_SIZE-1) printf("\033[30;107mX\033[0m"); 
-                else if (i == BOARD_SIZE-1 && j == 0) printf("\033[100mX\033[0m");
-                else printf(" ");
-            }
-            else {
-                Pawn *pawn = game->board[i][j];
-                if (pawn->color == WHITE) printf("\033[30;107mW\033[0m");
-                else if (pawn->color == BLACK) printf("\033[100mB\033[0m");
-                // if (pawn->type == SPY) printf("S");
-                // else if (pawn->type == SCOUT) printf("C");
-            }
-        }
-        printf("|\n");
-    }
-    printf("\n");
-}
-
-/**
  * \brief Frees the game board
  * \param game: the game to free
  */
@@ -214,35 +192,6 @@ int is_valid_move(Game *game, Movement *movement) {
 }
 
 /**
- * \brief Gets a movement from the player
- * \param game: the game where the movement is done
- * \return the movement
- */
-Movement *get_movement(Game *game) { //get the movement from the player
-    int movement_valid = 1;
-    Movement *movement = (Movement *)malloc(sizeof(Movement));
-    while (movement_valid != 0) {
-        printf("Enter movement (x1, y1) --> (x2, y2):\n");
-        fflush(stdin);
-        // scanf("(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
-        char tmp[100];
-        fgets(tmp, 100, stdin);
-        sscanf(tmp, "(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
-        printf("\n");
-        movement_valid = is_valid_move(game, movement);
-        if (movement_valid != 0) {
-            printf("Invalid movement. ");
-            if (movement_valid == 1) printf("Try again.\n");
-            else if (movement_valid == 2) printf("Cannot move to self's base.\n");
-            else if (movement_valid == 3) printf("No pawn at this position.\n");
-            else if (movement_valid == 4) printf("Cannot move opponent's pawn.\n");
-            else if (movement_valid == 5) printf("Cannot move to a taken spot.\n");
-        }
-    }
-    return movement;
-}
-
-/**
  * \brief Checks if there is a pawn adjacent to the given position
  * \param game: the game where the pawn is checked
  * \param x: the x position of the pawn
@@ -262,78 +211,6 @@ bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjace
     return false;
 }
 
-/**
- * \brief Questions a pawn
- * \param game: the game where the question is done
- * \param save: whether to save the question
- * \param save_file: the file where to save the question
- * \return 0 if the player can try again,
- *         1 if the player won,
- *         2 if the player failed to find the spy
- */
-int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
-    int x, y;
-    int valid_question = 0;
-    Pawn *pawn;
-
-    while (!valid_question) { //get the position of the pawn to question
-        printf("Which pawn do you want to question ? (x, y)\n");
-        fflush(stdin);
-        // scanf("(%d, %d)", &x, &y);
-        char tmp[100];
-        fgets(tmp, 100, stdin);
-        sscanf(tmp, "(%d, %d)", &x, &y);
-        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) printf("Out of bounds.\n");
-        pawn = game->board[y][x];
-        if (pawn == NULL) printf("There is no pawn at this position.\n");
-        else if (pawn->color == game->player) printf("Cannot question your own pawn.\n");
-        else valid_question = 1;
-    }
-
-    if (check_adjacent(game, x, y)) { //if there's no pawn adjacent to the questioned pawn, the player can't question it
-        int x_, y_;
-        int valid_interrogator = 0;
-        Pawn *interrogator;
-        while (!valid_interrogator) { //get the position of the interrogator
-            printf("Which of your pawns is the interrogator ? (x, y)\n");
-            fflush(stdin);
-            // scanf("(%d, %d)", &x_, &y_);
-            char tmp[100];
-            fgets(tmp, 100, stdin);
-            sscanf(tmp, "(%d, %d)", &x_, &y_);
-            interrogator = game->board[y_][x_];
-            if (interrogator == NULL) printf("There is no pawn at this position.\n");
-            else if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
-            else if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) printf("The interrogator must be adjacent to the questioned pawn.\n");
-            else valid_interrogator = 1;
-        }
-
-        if (save) save_question(save_file, x, y, x_, y_);
-
-        if (pawn->type == SPY) { //if the questioned pawn is a spy
-            printf("You found the spy !\n");
-            if (interrogator->color == WHITE) printf("White wins !\n");
-            else printf("Black wins !\n");
-            return 1; //end of game
-        } else { //if the questioned pawn is a scout
-            printf("You did not find the spy and your pawn also got removed.\n");
-            if (interrogator->type == SPY) { //if the interrogator is a spy
-                printf("The interrogator was a spy.\n");
-                if (interrogator->color == WHITE) printf("Black wins !\n");
-                else printf("White wins !\n");
-                return 1; //end of game
-            }
-            free(game->board[y_][x_]);
-            game->board[y_][x_] = NULL;
-            return 2; //player failed to find the spy
-        }
-
-    } else {
-        printf("Cannot question a pawn that is not adjacent to one of your pawns.\n");
-        return 0; //player can try again
-    }
-}
-
 /********************************************************
  * The following functions are used for load/save files *
  ********************************************************/
@@ -347,13 +224,12 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
  *         1 if black won,
  *         2 if white won
  */
-int *check_win(Game *game, bool save, char *save_file) { //check if a player won by reaching the opponent's base
-    int *win = (int *)malloc(sizeof(int)); 
+int check_win(Game *game, bool save, char *save_file) {
+    int win = 0;
     Pawn *black_base = game->board[4][0];
     Pawn *white_base = game->board[0][4];
-    if (white_base != NULL) {if (white_base->color == BLACK) *win = 1;}
-    else if (black_base != NULL) {if (black_base->color == WHITE) *win = 2;}
-    else *win = 0;
+    if (white_base != NULL) {if (white_base->color == BLACK) win = 1;}
+    else if (black_base != NULL) {if (black_base->color == WHITE) win = 2;}
     if (save) save_win(save_file, win);
     return win;
 }
@@ -397,10 +273,10 @@ void save_question(char *save_file, int x, int y, int x_, int y_) {
  * \param save_file: the file where the win needs to be saved
  * \param win: the winner
  */
-void save_win(char *save_file, int *win) {
+void save_win(char *save_file, int win) {
     FILE *fptr = fopen(save_file, "a");
-    if (*win == 1) fprintf(fptr, "B\n");
-    else if (*win == 2) fprintf(fptr, "W\n");
+    if (win == 1) fprintf(fptr, "B\n");
+    else if (win == 2) fprintf(fptr, "W\n");
     fclose(fptr);
 }
 
@@ -489,7 +365,7 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
                 win = 2;
                 printf("White wins !\n");
             }
-            if (save) save_win(save_file, &win);
+            if (save) save_win(save_file, win);
             return true;
         } else {
             if (game->player == WHITE) printf("White's turn. "); //print player's turn
@@ -553,7 +429,7 @@ void init_save(char *save_file, Game *game) {
 }
 
 /********************************************************
- * Main game functions***********************************
+ * Command line functions *******************************
  ********************************************************/
 
 /**
@@ -594,24 +470,23 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
         sscanf(tmp, "%d", &option);
 
         if (option == 1) { //move a pawn
-            Movement *movement = get_movement(game); // gets the movement from the player
+            Movement *movement = cmd_get_movement(game); // gets the movement from the player
             move_pawn(game, movement, save, save_file);
             if (game->player == WHITE) game->player = BLACK;
             else game->player = WHITE;
-            int *win = check_win(game, save, save_file);
-            if (*win == 1) {
+            int win = check_win(game, save, save_file);
+            if (win == 1) {
                 printf("Black wins !\n");
                 playing = 0;
-            } else if (*win == 2) {
+            } else if (win == 2) {
                 printf("White wins !\n");
                 playing = 0;
             }
-            free(win);
             free(movement);
         } 
         else if (option == 2) { //question a pawn
             int found = 0;
-            while (found == 0) found = question_pawn(game, save, save_file);
+            while (found == 0) found = cmd_question_pawn(game, save, save_file);
             if (found == 1) playing = 0;
             else if (found == 2) {
                 if (game->player == WHITE) game->player = BLACK;
@@ -622,4 +497,211 @@ void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
     }
 
     free_board(game);
+}
+
+/**
+ * \brief Prints the board
+ * \param game: the game to print
+ */
+void print_board(Game *game) {
+    printf("\n ");
+    for (int i = 0; i < BOARD_SIZE; i++) { //print column numbers
+        printf(" %d", i);
+    }
+    printf("\n");
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        printf("%d", i); //print row number
+        for (int j = 0; j < BOARD_SIZE; j++) { //print board
+            printf("|");
+            if (game->board[i][j] == NULL) {
+                if (i == 0 && j == BOARD_SIZE-1) printf("\033[30;107mX\033[0m"); 
+                else if (i == BOARD_SIZE-1 && j == 0) printf("\033[100mX\033[0m");
+                else printf(" ");
+            }
+            else {
+                Pawn *pawn = game->board[i][j];
+                if (pawn->color == WHITE) printf("\033[30;107mW\033[0m");
+                else if (pawn->color == BLACK) printf("\033[100mB\033[0m");
+                // if (pawn->type == SPY) printf("S");
+                // else if (pawn->type == SCOUT) printf("C");
+            }
+        }
+        printf("|\n");
+    }
+    printf("\n");
+}
+
+/**
+ * \brief Gets a movement from the player
+ * \param game: the game where the movement is done
+ * \return the movement
+ */
+Movement *cmd_get_movement(Game *game) { //get the movement from the player
+    int movement_valid = 1;
+    Movement *movement = (Movement *)malloc(sizeof(Movement));
+    while (movement_valid != 0) {
+        printf("Enter movement (x1, y1) --> (x2, y2):\n");
+        fflush(stdin);
+        // scanf("(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
+        char tmp[100];
+        fgets(tmp, 100, stdin);
+        sscanf(tmp, "(%d, %d) --> (%d, %d)", &movement->start.x, &movement->start.y, &movement->end.x, &movement->end.y);
+        printf("\n");
+        movement_valid = is_valid_move(game, movement);
+        if (movement_valid != 0) {
+            printf("Invalid movement. ");
+            if (movement_valid == 1) printf("Try again.\n");
+            else if (movement_valid == 2) printf("Cannot move to self's base.\n");
+            else if (movement_valid == 3) printf("No pawn at this position.\n");
+            else if (movement_valid == 4) printf("Cannot move opponent's pawn.\n");
+            else if (movement_valid == 5) printf("Cannot move to a taken spot.\n");
+        }
+    }
+    return movement;
+}
+
+/**
+ * \brief Questions a pawn
+ * \param game: the game where the question is done
+ * \param save: whether to save the question
+ * \param save_file: the file where to save the question
+ * \return 0 if the player can try again,
+ *         1 if the player won,
+ *         2 if the player failed to find the spy
+ */
+int cmd_question_pawn(Game *game, bool save, char *save_file) { //question a pawn
+    int x, y;
+    int valid_question = 0;
+    Pawn *pawn;
+
+    while (!valid_question) { //get the position of the pawn to question
+        printf("Which pawn do you want to question ? (x, y)\n");
+        fflush(stdin);
+        // scanf("(%d, %d)", &x, &y);
+        char tmp[100];
+        fgets(tmp, 100, stdin);
+        sscanf(tmp, "(%d, %d)", &x, &y);
+        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) printf("Out of bounds.\n");
+        pawn = game->board[y][x];
+        if (pawn == NULL) printf("There is no pawn at this position.\n");
+        else if (pawn->color == game->player) printf("Cannot question your own pawn.\n");
+        else valid_question = 1;
+    }
+
+    if (check_adjacent(game, x, y)) { //if there's no pawn adjacent to the questioned pawn, the player can't question it
+        int x_, y_;
+        int valid_interrogator = 0;
+        Pawn *interrogator;
+        while (!valid_interrogator) { //get the position of the interrogator
+            printf("Which of your pawns is the interrogator ? (x, y)\n");
+            fflush(stdin);
+            // scanf("(%d, %d)", &x_, &y_);
+            char tmp[100];
+            fgets(tmp, 100, stdin);
+            sscanf(tmp, "(%d, %d)", &x_, &y_);
+            interrogator = game->board[y_][x_];
+            if (interrogator == NULL) printf("There is no pawn at this position.\n");
+            else if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
+            else if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) printf("The interrogator must be adjacent to the questioned pawn.\n");
+            else valid_interrogator = 1;
+        }
+
+        if (save) save_question(save_file, x, y, x_, y_);
+
+        int win = 0;
+        if (pawn->type == SPY) { //if the questioned pawn is a spy
+            printf("You found the spy !\n");
+            if (interrogator->color == WHITE) win = 2;
+            else win = 1;
+        } else { //if the questioned pawn is a scout
+            printf("You did not find the spy and your pawn also got removed.\n");
+            if (interrogator->type == SPY) { //if the interrogator is a spy
+                printf("The interrogator was a spy.\n");
+                if (interrogator->color == WHITE) win = 1;
+                else win = 2;
+            }
+            free(game->board[y_][x_]);
+            game->board[y_][x_] = NULL;
+        }
+        if (win == 1 || win == 2) {
+            if (save) save_win(save_file, win);
+            if (win == 1) printf("Black wins !\n");
+            else printf("White wins !\n");
+            return 1;
+        }
+        return 2;
+
+    } else {
+        printf("Cannot question a pawn that is not adjacent to one of your pawns.\n");
+        return 0; //player can try again
+    }
+}
+
+/********************************************************
+ * Graphical functions***********************************
+ ********************************************************/
+
+/**
+ * \brief Initializes the window
+ * \param window: the window to initialize
+ * \return the window surface
+ */
+SDL_Surface *init_window(SDL_Window *window) {
+    SDL_Surface *surface = SDL_GetWindowSurface(window);
+    SDL_FillRect(surface, NULL, SDL_MapRGB(surface->format, 20, 20, 40));
+    SDL_UpdateWindowSurface(window);
+    return surface;
+}
+
+/**
+ * \brief Draws the board
+ * \param window: the window where to draw the board
+ * \param surface: the surface where to draw the board
+ */
+void draw_board(SDL_Window *window, SDL_Surface *surface, Game *game) {
+    SDL_Rect rect;
+    int margin = 10;
+    int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            rect.x = 2*margin + i*(rect_size + margin);
+            rect.y = 2*margin + j*(rect_size + margin);
+            rect.w = rect_size;
+            rect.h = rect_size;
+            if (game->board[j][i] == NULL) {
+                SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 30, 30, 50));
+                if (i == 0 && j == BOARD_SIZE-1) ;
+                else if (i == BOARD_SIZE-1 && j == 0) SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 100, 100, 100));
+            }
+        }
+    }
+    SDL_UpdateWindowSurface(window);
+}
+
+/**
+ * \brief Starts a game in graphical mode
+ * \param save: whether to save the game
+ * \param save_file: the file where to save the game
+ * \param load: whether to load a game
+ * \param load_file: the file where to load the game
+ */
+void graphical_game(bool save, char *save_file, bool load, FILE *load_file) {
+    Game *game = (Game *)malloc(sizeof(Game));
+    init_game(game);
+    init_pawns(game);
+
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
+        fprintf(stderr, "Error: could not initialize SDL: %s\n", SDL_GetError());
+        return;
+    }
+    
+    SDL_Window *window = SDL_CreateWindow("Incognito", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 500, 500, 0);
+    if (window == NULL) {
+        fprintf(stderr, "Error: could not create window: %s\n", SDL_GetError());
+        return;
+    }
+    SDL_Surface *surface = init_window(window);
+    draw_board(window, surface, game);
+
+    SDL_Delay(3000);
 }

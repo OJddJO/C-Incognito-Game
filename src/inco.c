@@ -663,12 +663,12 @@ SDL_Surface *init_window(SDL_Window *window) {
 
 /**
  * \brief Draws the board
- * \param window: the window where to draw the board
- * \param surface: the surface where to draw the board
+ * \param renderer: the renderer where to draw the board
+ * \param game: the game to draw
  */
-void draw_board(SDL_Window *window, SDL_Surface *surface, Game *game) {
+void draw_board(SDL_Renderer *renderer, Game *game) {
     SDL_Rect rect;
-    TTF_Font *font = TTF_OpenFont("assets/Roboto-Regular.ttf", 24);
+    TTF_Font *font = TTF_OpenFont("righteous.ttf", 52/BOARD_SIZE*5);
     int margin = 10;
     int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
     for (int i = 0; i < BOARD_SIZE; i++) {
@@ -677,28 +677,55 @@ void draw_board(SDL_Window *window, SDL_Surface *surface, Game *game) {
             rect.y = 2*margin + j*(rect_size + margin);
             rect.w = rect_size;
             rect.h = rect_size;
+            SDL_SetRenderDrawColor(renderer, 30, 30, 50, 255);
+            SDL_RenderFillRect(renderer, &rect);
+            rect.x += margin;
+            rect.y += margin;
+            rect.w -= 2*margin;
+            rect.h -= 2*margin;
             if (game->board[j][i] == NULL) {
-                if (i == 0 && j == BOARD_SIZE-1){
-                    SDL_Color color = {255, 255, 255};
-                    SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 80, 80, 80));
-                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", color);
-                    SDL_BlitSurface(text_surface, NULL, surface, &rect);
-                    SDL_FreeSurface(text_surface);
+                SDL_Color text_color;
+                bool is_black_base = (i == 0 && j == BOARD_SIZE-1);
+                bool is_white_base = (i == BOARD_SIZE-1 && j == 0);
+                if (is_black_base) {
+                    SDL_SetRenderDrawColor(renderer, 80, 80, 80, 255);
+                    text_color = (SDL_Color){255, 255, 255};
                 }
-                else if (i == BOARD_SIZE-1 && j == 0) {
-                    SDL_Color color = {100, 100, 100};
-                    SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 200, 200, 200));
-                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", color);
-                    SDL_BlitSurface(text_surface, NULL, surface, &rect);
+                else if (is_white_base) {
+                    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+                    text_color = (SDL_Color){0, 0, 0};
+                }
+                if (is_black_base || is_white_base) {
+                    SDL_RenderFillRect(renderer, &rect);
+                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", text_color);
+                    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+                    SDL_Rect text_rect = {rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
+                    SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
                     SDL_FreeSurface(text_surface);
-                } else SDL_FillRect(surface, &rect, SDL_MapRGB(surface->format, 30, 30, 50));
+                    SDL_DestroyTexture(text_texture);
+                }
             } else {
-
+                SDL_Color text_color;
+                if (game->board[j][i]->color == WHITE) {
+                    SDL_SetRenderDrawColor(renderer, 200, 200, 200, 255);
+                    text_color = (SDL_Color){0, 0, 0};
+                } else {
+                    SDL_SetRenderDrawColor(renderer, 80, 80, 80, 255);
+                    text_color = (SDL_Color){255, 255, 255};
+                }
+                SDL_RenderFillRect(renderer, &rect);
+                SDL_Surface *text_surface;
+                text_surface = TTF_RenderText_Solid(font, "", text_color);
+                if (game->board[j][i]->type == SPY) {
+                    text_surface = TTF_RenderText_Solid(font, "S", text_color);
+                } else if (game->board[j][i]->type == SCOUT) {
+                    text_surface = TTF_RenderText_Solid(font, "C", text_color);
+                }
             }
         }
     }
-    SDL_UpdateWindowSurface(window);
     TTF_CloseFont(font);
+    SDL_RenderPresent(renderer);
 }
 
 /**
@@ -728,8 +755,12 @@ void graphical_game(bool save, char *save_file, bool load, FILE *load_file) {
         return;
     }
     SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    SDL_Surface *surface = init_window(window);
-    draw_board(window, surface, game);
+    init_window(window);
+    draw_board(renderer, game);
 
     SDL_Delay(3000);
+
+    //close everything
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
 }

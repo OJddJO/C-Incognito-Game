@@ -8,6 +8,7 @@
 #include <string.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 
 #define BOARD_SIZE 5
 #define NB_PAWNS (BOARD_SIZE-1)*(BOARD_SIZE-2)/2 - 1
@@ -58,6 +59,6 @@ int cmd_question_pawn(Game *game, bool save, char *save_file);
 
 void graphical_game(bool save, char *save_file, bool load, FILE *load_file);
 SDL_Surface *init_window(SDL_Window *window);
-void draw_board(SDL_Window *window, SDL_Surface *surface, Game *game);
+void draw_board(SDL_Renderer *renderer, Game *game);
 
 #endif // BRUH_H

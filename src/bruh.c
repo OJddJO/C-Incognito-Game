@@ -1,52 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdbool.h>
-#include <string.h>
-
-#define BOARD_SIZE 5
-#define NB_PAWNS (BOARD_SIZE-1)*(BOARD_SIZE-2)/2 - 1
-
-typedef enum _color {WHITE, BLACK} Color;
-typedef enum _type {SPY, SCOUT} Type;
-
-typedef struct _pawn {
-    Color color;
-    Type type;
-} Pawn;
-
-typedef struct _game {
-    Pawn * board[BOARD_SIZE][BOARD_SIZE];
-    Color player;
-} Game;
-
-typedef struct {
-    int x, y;
-} Case, Direction;
-
-typedef struct _movement {
-    Case start, end;
-} Movement;
-
-Game *init_game(Game *game);
-int ediv(int a, int b);
-void init_pawns(Game *game);
-void move_pawn(Game *game, Movement *movement, bool save, char *save_file);
-void print_board(Game *game);
-void free_board(Game *game);
-int is_valid_move(Game *game, Movement *movement);
-Movement *get_movement(Game *game);
-bool check_adjacent(Game *game, int x, int y);
-int question_pawn(Game *game, bool save, char *save_file);
-int *check_win(Game *game, bool save, char *save_file);
-void save_move(char *path, Movement *movement);
-void save_question(char *save_file, int x, int y, int x_, int y_);
-void save_win(char *save_file, int *win);
-void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file);
-void replace_spies(Game *game, int x, int y, int x_, int y_);
-bool read_save(FILE *load_file, Game *game, bool save, char *save_file);
-void init_save(char *save_file, Game *game);
-void cmd_game(bool save, char *save_file, bool load, FILE *load_file);
+#include "bruh.h"
 
 /*Main function*/
 int main(int argc, char *argv[]) {
@@ -382,6 +334,10 @@ int question_pawn(Game *game, bool save, char *save_file) { //question a pawn
     }
 }
 
+/********************************************************
+ * The following functions are used for load/save files *
+ ********************************************************/
+
 /**
  * \brief Checks if a player won by reaching the opponent's base
  * \param game: the game where the win is checked
@@ -458,7 +414,7 @@ void save_win(char *save_file, int *win) {
  * \param save: whether to save the question
  * \param save_file: the file where to save the question
  */
-void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file) { //evaluate the question for the save file only
+void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file) {
     Pawn *pawn = game->board[y][x];
     Pawn *interrogator = game->board[y_][x_];
     if (pawn->type == SPY) {
@@ -524,8 +480,16 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
     while (fgets(line, 30, fptr) != NULL) {
         print_board(game);
         if (line[0] == 'B' || line[0] == 'W') { //win
-            if (line[0] == 'B') printf("Black wins !\n");
-            else printf("White wins !\n");
+            int win;
+            if (line[0] == 'B') {
+                win = 2;
+                printf("Black wins !\n");
+            }
+            else {
+                win = 1;
+                printf("White wins !\n");
+            }
+            save_win(save_file, &win);
             return true;
         } else {
             if (game->player == WHITE) printf("White's turn. "); //print player's turn
@@ -548,10 +512,10 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
             }
             else if (line[0] == 'I') { //question
                 sscanf(line, "I %c%c->%c%c", &x, &y, &x_, &y_);
-                int qx = x - 'a'; //questioned pawn
-                int qy = y - '1';
-                int ix = x_ - 'a'; //interrogator
-                int iy = y_ - '1';
+                int ix = x - 'a'; //questioned pawn
+                int iy = y - '1';
+                int qx = x_ - 'a'; //interrogator
+                int qy = y_ - '1';
                 eval_question(game, qx, qy, ix, iy, save, save_file);
                 printf("Questioned pawn at (%d, %d) with pawn at (%d, %d)\n", qx, qy, ix, iy);
             }
@@ -587,6 +551,10 @@ void init_save(char *save_file, Game *game) {
     fprintf(fptr, "B %c%c\nN %c%c\nB\n", wx, wy, bx, by);
     fclose(fptr);
 }
+
+/********************************************************
+ * Main game functions***********************************
+ ********************************************************/
 
 /**
  * \brief Starts a game in command line mode

@@ -1,12 +1,16 @@
 CC = gcc
 CFLAGS = -Wall -g
-TARGET = ./src/bruh.exe
-SRC = ./src/bruh.c
 
-all: $(TARGET)
-
-$(TARGET): $(SRC)
-	$(CC) $(CFLAGS) -o $(TARGET) $(SRC)
+bruh: .\src\bruh.c
+	$(CC) $(CFLAGS) -o .\src\bruh.exe .\src\bruh.c
 
 clean:
-	rm -f $(TARGET)
+ifeq ($(OS),Windows_NT)
+	del /F .\src\bruh.exe
+else
+	rm -f .\src\bruh.exe
+endif
+
+all: bruh
+
+clean_build_all: clean all

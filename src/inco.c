@@ -22,21 +22,22 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "-s") == 0) {
             printf("Saving game to '%s'\n", argv[i+1]);
             save = true;
-            save_file = argv[++i];
+            save_file = argv[i+1];
             FILE *file = fopen(save_file, "w");
             if (file == NULL) {
-                printf("Error: could not open file '%s'\n", argv[i]);
+                printf("Error: could not open file '%s'\n", argv[i+1]);
                 return 1;
             }
             fclose(file);
+            i++;
         }
         if (strcmp(argv[i], "-c") == 0) {
             printf("Loading game from '%s'\n", argv[i+1]);
             load = true;
-            load_file_name = argv[++i];
-            load_file = fopen(argv[i], "r");
+            load_file_name = argv[i+1];
+            load_file = fopen(argv[i+1], "r");
             if (load_file == NULL) {
-                printf("Error: could not open file '%s'\n", argv[i]);
+                printf("Error: could not open file '%s'\n", argv[i+1]);
                 return 1;
             }
             i++;
@@ -108,11 +109,12 @@ void init_pawns(Game *game) {
     int c = 0; //column
     int n = 0; //number of pawns placed
     int s = rand()%NB_PAWNS; //spy position
+    if (s < 0) s = -s;
     for (int i = 0; i < BOARD_SIZE-2; i++) {
         for (int j = 0; j < r; j++) {
             Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
             pawn->color = WHITE;
-            if (i == s) pawn->type = SPY;
+            if (n == s) pawn->type = SPY;
             else pawn->type = SCOUT;
             game->board[c][2+c+j] = pawn;
             if (++n == NB_PAWNS) break;
@@ -121,16 +123,16 @@ void init_pawns(Game *game) {
         if (c > 1) r = BOARD_SIZE-3 - (c-1);
         else r = BOARD_SIZE-3;
     }
-    // print_board(game); //debug
     r = BOARD_SIZE-3;
     c = 0;
     n = 0;
     s = rand()%NB_PAWNS;
+    if (s < 0) s = -s;
     for (int i = 0; i < BOARD_SIZE-2; i++) {
         for (int j = 0; j < r; j++) {
             Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
             pawn->color = BLACK;
-            if (i == s) pawn->type = SPY;
+            if (n == s) pawn->type = SPY;
             else pawn->type = SCOUT;
             game->board[BOARD_SIZE-1-c][BOARD_SIZE-3-c-j] = pawn;
             if (++n == NB_PAWNS) break;
@@ -139,7 +141,6 @@ void init_pawns(Game *game) {
         if (c > 1) r = BOARD_SIZE-3 - (c-1);
         else r = BOARD_SIZE-3;
     }
-    // print_board(game); //debug
 }
 
 /**
@@ -215,7 +216,7 @@ int is_valid_move(Game *game, Movement *movement) {
  * \return true if there is a pawn adjacent to the given position,
  *         false otherwise
  */
-bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
+bool pawn_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
     for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
             if (x+j >= 0 && x+j < BOARD_SIZE && y+i >= 0 && y+i < BOARD_SIZE) {
@@ -225,6 +226,31 @@ bool check_adjacent(Game *game, int x, int y) { //check if there's a pawn adjace
         }
     }
     return false;
+}
+
+/**
+ * \brief Questions a pawn
+ * \param questionned: the pawn to question
+ * \param interrogator: the pawn that questions
+ * \return 1 if black wins,
+ *         2 if white wins
+ */
+int question_pawn(Game *game, int x, int y, int x_, int y_) {
+    int win = 0;
+    Pawn *questionned = game->board[y][x];
+    Pawn *interrogator = game->board[y_][x_];
+    if (questionned->type == SPY) {
+        if (questionned->color == WHITE) win = 2; //white wins
+        else win = 1; //black wins
+        free(questionned);
+        game->board[y][x] = NULL;
+    } else if (interrogator->type == SPY) {
+        if (interrogator->color == WHITE) win = 1; //black wins
+        else win = 2; //white wins
+    }
+    free(interrogator);
+    game->board[y_][x_] = NULL;
+    return win;
 }
 
 /********************************************************
@@ -307,20 +333,9 @@ void save_win(char *save_file, int win) {
  * \param save_file: the file where to save the question
  */
 void eval_question(Game *game, int x, int y, int x_, int y_, bool save, char *save_file) {
-    Pawn *pawn = game->board[y][x];
-    Pawn *interrogator = game->board[y_][x_];
-    if (pawn->type == SPY) {
-        if (interrogator->color == WHITE) printf("White wins !\n");
-        else printf("Black wins !\n");
-    } else {
-        if (interrogator->type == SPY) {
-            if (interrogator->color == WHITE) printf("Black wins !\n");
-            else printf("White wins !\n");
-        } else {
-            free(game->board[y_][x_]);
-            game->board[y_][x_] = NULL;
-        }
-    }
+    int win = question_pawn(game, x, y, x_, y_);
+    if (win == 1) printf("Black wins !\n");
+    else if (win == 2) printf("White wins !\n");
     if (save) save_question(save_file, x, y, x_, y_);
 }
 
@@ -552,7 +567,7 @@ void print_board(Game *game) {
  * \param game: the game where the movement is done
  * \return the movement
  */
-Movement *cmd_get_movement(Game *game) { //get the movement from the player
+Movement *cmd_get_movement(Game *game) {
     int movement_valid = 1;
     Movement *movement = (Movement *)malloc(sizeof(Movement));
     while (movement_valid != 0) {
@@ -585,7 +600,7 @@ Movement *cmd_get_movement(Game *game) { //get the movement from the player
  *         1 if the player won,
  *         2 if the player failed to find the spy
  */
-int cmd_question_pawn(Game *game, bool save, char *save_file) { //question a pawn
+int cmd_question_pawn(Game *game, bool save, char *save_file) {
     int x, y;
     int valid_question = 0;
     Pawn *pawn;
@@ -597,7 +612,10 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) { //question a paw
         char tmp[100];
         fgets(tmp, 100, stdin);
         sscanf(tmp, "(%d, %d)", &x, &y);
-        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) printf("Out of bounds.\n");
+        if (x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) {
+            printf("Out of bounds.\n");
+            continue;
+        }
         pawn = game->board[y][x];
         if (pawn == NULL) printf("There is no pawn at this position.\n");
         else if (pawn->color == game->player) printf("Cannot question your own pawn.\n");
@@ -624,21 +642,22 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) { //question a paw
 
         if (save) save_question(save_file, x, y, x_, y_);
 
-        int win = 0;
-        if (pawn->type == SPY) { //if the questioned pawn is a spy
-            printf("You found the spy !\n");
-            if (interrogator->color == WHITE) win = 2;
-            else win = 1;
-        } else { //if the questioned pawn is a scout
-            printf("You did not find the spy and your pawn also got removed.\n");
-            if (interrogator->type == SPY) { //if the interrogator is a spy
-                printf("The interrogator was a spy.\n");
-                if (interrogator->color == WHITE) win = 1;
-                else win = 2;
+        int win = question_pawn(game, x, y, x_, y_);
+        if (win != 0) {
+            if (win == 1) {
+                if (game->player == WHITE) {
+                    printf("You did not find the spy and the interrogator was a spy. Black wins !\n");
+                } else {
+                    printf("You found the spy. Black wins !\n");
+                }
+            } else if (win == 2) {
+                if (game->player == BLACK) {
+                    printf("You did not find the spy and the interrogator was a spy. White wins !\n");
+                } else {
+                    printf("You found the spy. White wins !\n");
+                }
             }
-            free(game->board[y_][x_]);
-            game->board[y_][x_] = NULL;
-        }
+        } else printf("You did not find the spy and your pawn also got removed.\n");
         if (win == 1 || win == 2) {
             if (save) save_win(save_file, win);
             if (win == 1) printf("Black wins !\n");
@@ -669,6 +688,14 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
     init_game(game);
     init_pawns(game);
 
+    if (load) {
+        bool end_game = read_save(load_file, game, save, save_file);
+        if (end_game) {
+            free_board(game);
+            return;
+        }
+    } else if (save) init_save(save_file, game);
+
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "Error: could not initialize SDL: %s\n", SDL_GetError());
         return;
@@ -689,14 +716,23 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
         return;
     }
     SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-    TTF_Font *pawn_font = TTF_OpenFont("righteous.ttf", 52/BOARD_SIZE*5);
-    if (pawn_font == NULL) {
+    TTF_Font *pawn_font;
+    if (!render_image) {
+        pawn_font = TTF_OpenFont("righteous.ttf", 52/BOARD_SIZE*5);
+        if (pawn_font == NULL) {
+            fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
+            return;
+        }
+    }
+    TTF_Font *font = TTF_OpenFont("righteous.ttf", 24);
+    if (font == NULL) {
         fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
         return;
     }
 
     // init_window(window, renderer);
     bool quit = false, redraw_all = true;
+    int win = 0;
     SDL_Event event;
     Case *pos1 = NULL, *pos2 = NULL;
     while (!quit) {
@@ -707,13 +743,78 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                     if (event.button.button == SDL_BUTTON_LEFT) {
-                        pos1 = handle_click(game, event.button.x, event.button.y);
-                        draw_board(renderer, pawn_font, render_image, game);
-                        highlight_pawn(renderer, pos1);
-                        free(pos1);
+                        if (pos1 == NULL) {
+                            pos1 = handle_click(game, event.button.x, event.button.y);
+                            if (game->board[pos1->y][pos1->x] != NULL && game->board[pos1->y][pos1->x]->color == game->player) {
+                                draw_board(renderer, pawn_font, render_image, game);
+                                highlight_pawn(renderer, pos1);
+                            } else {
+                                free(pos1);
+                                pos1 = NULL;
+                            }
+                        } else if (pos2 == NULL) {
+                            pos2 = handle_click(game, event.button.x, event.button.y);
+                            int intent = eval_intention(game, pos2);
+                            if (intent == 0) {
+                                Movement *movement = (Movement *)malloc(sizeof(Movement));
+                                movement->start.x = pos1->x;
+                                movement->start.y = pos1->y;
+                                movement->end.x = pos2->x;
+                                movement->end.y = pos2->y;
+                                int valid = is_valid_move(game, movement);
+                                if (valid == 0) {
+                                    move_pawn(game, movement, save, save_file);
+                                    win = check_win(game, save, save_file);
+                                    if (win == 1) {
+                                        printf("Black wins !\n");
+                                        quit = true;
+                                    } else if (win == 2) {
+                                        printf("White wins !\n");
+                                        quit = true;
+                                    }
+                                    free(movement);
+                                    free(pos1);
+                                    free(pos2);
+                                    pos1 = NULL, pos2 = NULL;
+                                    if (game->player == WHITE) game->player = BLACK;
+                                    else game->player = WHITE;
+                                    redraw_all = true;
+                                } else {
+                                    if (valid == 1) printf("Invalid movement.\n");
+                                    else if (valid == 2) printf("Cannot move to self's base.\n");
+                                    else if (valid == 3) printf("No pawn at this position.\n");
+                                    else if (valid == 4) printf("Cannot move opponent's pawn.\n");
+                                    else if (valid == 5) printf("Cannot move to a taken spot.\n");
+                                    free(pos2);
+                                    pos2 = NULL;
+                                }
+                            } else if (intent == 1) {
+                                if (check_adjacent(game, pos2->x, pos2->y)) {
+                                    if (save) save_question(save_file, pos2->x, pos2->y, pos1->x, pos1->y);
+                                    win = question_pawn(game, pos2->x, pos2->y, pos1->x, pos1->y);
+                                    if (win == 1 || win == 2) {
+                                        if (save) save_win(save_file, win);
+                                        if (win == 1) printf("Black wins !\n");
+                                        else printf("White wins !\n");
+                                        quit = true;
+                                    }
+                                    free(pos1);
+                                    free(pos2);
+                                    pos1 = NULL, pos2 = NULL;
+                                    if (game->player == WHITE) game->player = BLACK;
+                                    else game->player = WHITE;
+                                    redraw_all = true;
+                                }
+                            } else {
+                                free(pos2);
+                                pos2 = NULL;
+                            }
+                        }
                     } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                        if (pos1 != NULL) free(pos1);
+                        if (pos2 != NULL) free(pos2);
                         pos1 = NULL, pos2 = NULL;
-                        draw_board(renderer, pawn_font, render_image, game);
+                        redraw_all = true;
                     }
             }
         }
@@ -723,9 +824,37 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
         }
     }
 
+    if (win != 0) {
+        SDL_Surface *text_surface;
+        SDL_Texture *text_texture;
+        SDL_Rect text_rect;
+        SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
+        if (win == 1) {
+            text_surface = TTF_RenderText_Solid(font, "Black wins !", (SDL_Color){255, 255, 255});
+            text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+            text_rect = (SDL_Rect){WIN_SIZE/2 - text_surface->w/2, WIN_SIZE/2 - text_surface->h/2, text_surface->w, text_surface->h};
+        }
+        else {
+            text_surface = TTF_RenderText_Solid(font, "White wins !", (SDL_Color){255, 255, 255});
+            text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+            text_rect = (SDL_Rect){WIN_SIZE/2 - text_surface->w/2, WIN_SIZE/2 - text_surface->h/2, text_surface->w, text_surface->h};
+        }
+        SDL_RenderFillRect(renderer, &text_rect);
+        SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+        SDL_FreeSurface(text_surface);
+        SDL_DestroyTexture(text_texture);
+        SDL_RenderPresent(renderer);
+        bool quit = false;
+        while (!quit) {
+            while (SDL_PollEvent(&event)) {
+                if (event.type == SDL_QUIT) quit = true;
+            }
+        }
+    }
+
     //close everything
     free_board(game);
-    TTF_CloseFont(pawn_font);
+    if (!render_image) TTF_CloseFont(pawn_font);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     TTF_Quit();
@@ -815,7 +944,10 @@ void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game 
                         text_color = (SDL_Color){220, 220, 220};
                     }
                     SDL_RenderFillRect(renderer, &rect);
-                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "P", text_color);
+                    // SDL_Surface *text_surface = TTF_RenderText_Solid(font, "P", text_color);
+                    SDL_Surface *text_surface;
+                    if (game->board[j][i]->type == SPY) text_surface = TTF_RenderText_Solid(font, "S", text_color);
+                    else text_surface = TTF_RenderText_Solid(font, "C", text_color);
                     SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
                     SDL_Rect text_rect = (SDL_Rect){rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
                     SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
@@ -861,4 +993,17 @@ void highlight_pawn(SDL_Renderer *renderer, Case *selected) {
     SDL_SetRenderDrawColor(renderer, 220, 220, 220, 50);
     SDL_RenderFillRect(renderer, &rect);
     SDL_RenderPresent(renderer);
+}
+
+/**
+ * \brief Evaluate if the intention is a move or a question
+ * \param game: the game where the intention is evaluated
+ * \param pos: the end position of the movement
+ * \return 0 if the intention is a move,
+ *         1 if the intention is a question
+ */
+int eval_intention(Game *game, Case *pos) {
+    if (game->board[pos->y][pos->x] == NULL) return 0;
+    if (game->board[pos->y][pos->x]->color != game->player) return 1;
+    return -1;
 }

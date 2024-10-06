@@ -41,7 +41,8 @@ void init_pawns(Game *game);
 void move_pawn(Game *game, Movement *movement, bool save, char *save_file);
 void free_board(Game *game);
 int is_valid_move(Game *game, Movement *movement);
-bool check_adjacent(Game *game, int x, int y);
+bool pawn_adjacent(Game *game, int x, int y);
+int question_pawn(Game *game, int x, int y, int x_, int y_);
 int check_win(Game *game, bool save, char *save_file);
 
 void init_save(char *save_file, Game *game);
@@ -62,5 +63,6 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
 void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game *game);
 Case *handle_click(Game *game, int x, int y);
 void highlight_pawn(SDL_Renderer *renderer, Case *selected);
+int eval_intention(Game *game, Case *pos);
 
 #endif // BRUH_H

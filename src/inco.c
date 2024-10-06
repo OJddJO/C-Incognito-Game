@@ -254,8 +254,8 @@ int question_pawn(Game *game, int x, int y, int x_, int y_) {
     Pawn *questionned = game->board[y][x];
     Pawn *interrogator = game->board[y_][x_];
     if (questionned->type == SPY) {
-        if (questionned->color == WHITE) win = 2; //white wins
-        else win = 1; //black wins
+        if (questionned->color == WHITE) win = 1; //black wins
+        else win = 2; //white wins
         free(questionned);
         game->board[y][x] = NULL;
     } else if (interrogator->type == SPY) {
@@ -797,8 +797,6 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     win = question_pawn(game, pos2->x, pos2->y, pos1->x, pos1->y);
                                     if (win == 1 || win == 2) {
                                         if (save) save_win(save_file, win);
-                                        if (win == 1) printf("Black wins !\n");
-                                        else printf("White wins !\n");
                                         quit = true;
                                     }
                                     free(pos1);

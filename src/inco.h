@@ -42,6 +42,7 @@ void move_pawn(Game *game, Movement *movement, bool save, char *save_file);
 void free_board(Game *game);
 int is_valid_move(Game *game, Movement *movement);
 bool pawn_adjacent(Game *game, int x, int y);
+bool is_adjacent(int x, int y, int x_, int y_);
 int question_pawn(Game *game, int x, int y, int x_, int y_);
 int check_win(Game *game, bool save, char *save_file);
 

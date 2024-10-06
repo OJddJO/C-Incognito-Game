@@ -2,7 +2,7 @@
 
 /*Main function*/
 int main(int argc, char *argv[]) {
-    bool graphical = false, render_image = true, save = false, load = false;
+    bool graphical = true, render_image = true, save = false, load = false;
     char *save_file;
     FILE *load_file;
     char *load_file_name;
@@ -46,8 +46,8 @@ int main(int argc, char *argv[]) {
             printf("Usage: %s [-a | -g] [-s save_file] [-c load_file]\n", argv[0]);
             printf("Options:\n");
             printf("    -h, --help: Display this help message\n");
-            printf("    -a: ASCII mode (default)\n");
-            printf("    -g [-i | -t]: Graphical mode\n");
+            printf("    -a: ASCII mode\n");
+            printf("    -g [-i | -t]: Graphical mode (default)\n");
             printf("    Options:\n");
             printf("        -i: Use images to render pawns (default)\n");
             printf("        -t: Use text to render pawns\n");
@@ -226,6 +226,20 @@ bool pawn_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacen
         }
     }
     return false;
+}
+
+/**
+ * \brief Checks if two positions are adjacent
+ * \param x: the x position of the first pawn
+ * \param y: the y position of the first pawn
+ * \param x_: the x position of the second pawn
+ * \param y_: the y position of the second pawn
+ * \return true if the two positions are adjacent,
+ *         false otherwise
+ */
+bool is_adjacent(int x, int y, int x_, int y_) {
+    if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) return false;
+    return true;
 }
 
 /**
@@ -409,10 +423,11 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
                 int ex = x_ - 'a'; //movement end
                 int ey = y_ - '1';
                 Movement *movement = (Movement *)malloc(sizeof(Movement));
-                movement->start.x = sx;
-                movement->start.y = sy;
-                movement->end.x = ex;
-                movement->end.y = ey;
+                // movement->start.x = sx;
+                // movement->start.y = sy;
+                // movement->end.x = ex;
+                // movement->end.y = ey;
+                movement = (Movement *){sx, sy, ex, ey};
                 move_pawn(game, movement, save, save_file);
                 printf("Moved pawn from (%d, %d) to (%d, %d)\n", sx, sy, ex, ey);
                 free(movement);
@@ -622,7 +637,7 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) {
         else valid_question = 1;
     }
 
-    if (check_adjacent(game, x, y)) { //if there's no pawn adjacent to the questioned pawn, the player can't question it
+    if (pawn_adjacent(game, x, y)) { //if there's no pawn adjacent to the questioned pawn, the player can't question it
         int x_, y_;
         int valid_interrogator = 0;
         Pawn *interrogator;
@@ -636,7 +651,7 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) {
             interrogator = game->board[y_][x_];
             if (interrogator == NULL) printf("There is no pawn at this position.\n");
             else if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
-            else if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) printf("The interrogator must be adjacent to the questioned pawn.\n");
+            else if (is_adjacent(x, y, x_, y_)) printf("The interrogator must be adjacent to the questioned pawn.\n");
             else valid_interrogator = 1;
         }
 
@@ -765,13 +780,7 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                 if (valid == 0) {
                                     move_pawn(game, movement, save, save_file);
                                     win = check_win(game, save, save_file);
-                                    if (win == 1) {
-                                        printf("Black wins !\n");
-                                        quit = true;
-                                    } else if (win == 2) {
-                                        printf("White wins !\n");
-                                        quit = true;
-                                    }
+                                    if (win != 0) quit = true;
                                     free(movement);
                                     free(pos1);
                                     free(pos2);
@@ -780,16 +789,11 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     else game->player = WHITE;
                                     redraw_all = true;
                                 } else {
-                                    if (valid == 1) printf("Invalid movement.\n");
-                                    else if (valid == 2) printf("Cannot move to self's base.\n");
-                                    else if (valid == 3) printf("No pawn at this position.\n");
-                                    else if (valid == 4) printf("Cannot move opponent's pawn.\n");
-                                    else if (valid == 5) printf("Cannot move to a taken spot.\n");
                                     free(pos2);
                                     pos2 = NULL;
                                 }
                             } else if (intent == 1) {
-                                if (check_adjacent(game, pos2->x, pos2->y)) {
+                                if (is_adjacent(pos1->x, pos1->y, pos2->x, pos2->y)) {
                                     if (save) save_question(save_file, pos2->x, pos2->y, pos1->x, pos1->y);
                                     win = question_pawn(game, pos2->x, pos2->y, pos1->x, pos1->y);
                                     if (win == 1 || win == 2) {

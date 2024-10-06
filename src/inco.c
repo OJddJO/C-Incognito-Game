@@ -660,7 +660,7 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) {
             interrogator = game->board[y_][x_];
             if (interrogator == NULL) printf("There is no pawn at this position.\n");
             else if (interrogator->color != game->player) printf("Cannot question a pawn that is not yours.\n");
-            else if (is_adjacent(x, y, x_, y_)) printf("The interrogator must be adjacent to the questioned pawn.\n");
+            else if (!is_adjacent(x, y, x_, y_)) printf("The interrogator must be adjacent to the questioned pawn.\n");
             else valid_interrogator = 1;
         }
 
@@ -682,10 +682,8 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) {
                 }
             }
         } else printf("You did not find the spy and your pawn also got removed.\n");
-        if (win == 1 || win == 2) {
+        if (win != 0) {
             if (save) save_win(save_file, win);
-            if (win == 1) printf("Black wins !\n");
-            else printf("White wins !\n");
             return 1;
         }
         return 2;

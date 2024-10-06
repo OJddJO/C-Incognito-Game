@@ -423,11 +423,10 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
                 int ex = x_ - 'a'; //movement end
                 int ey = y_ - '1';
                 Movement *movement = (Movement *)malloc(sizeof(Movement));
-                // movement->start.x = sx;
-                // movement->start.y = sy;
-                // movement->end.x = ex;
-                // movement->end.y = ey;
-                movement = (Movement *){sx, sy, ex, ey};
+                movement->start.x = sx;
+                movement->start.y = sy;
+                movement->end.x = ex;
+                movement->end.y = ey;
                 move_pawn(game, movement, save, save_file);
                 printf("Moved pawn from (%d, %d) to (%d, %d)\n", sx, sy, ex, ey);
                 free(movement);

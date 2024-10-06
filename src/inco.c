@@ -197,13 +197,23 @@ int is_valid_move(Game *game, Movement *movement) {
     if (x != x_ && y != y_) {
         if (abs(x-x_) != abs(y-y_)) return 1; //not a valid movement
     }
-    Direction dir;
-    dir.x = 1 - 2*(x_ - x < x);
-    dir.y = 1 - 2*(y_ - y < y);
-    while (x != x_ && y != y_) {
-        x += dir.x;
-        y += dir.y;
-        if (game->board[y][x] != NULL) return 1; //invalid movement
+    // check if there's a pawn in the way
+    if (x == x_) {
+        int step = ediv(y_-y, abs(y_-y));
+        for (int i = y+step; i != y_; i += step) {
+            if (game->board[i][x] != NULL) return 1; //not a valid movement
+        }
+    } else if (y == y_) {
+        int step = ediv(x_-x, abs(x_-x));
+        for (int i = x+step; i != x_; i += step) {
+            if (game->board[y][i] != NULL) return 1; //not a valid movement
+        }
+    } else {
+        int step_x = ediv(x_-x, abs(x_-x));
+        int step_y = ediv(y_-y, abs(y_-y));
+        for (int i = x+step_x, j = y+step_y; i != x_ && j != y_; i += step_x, j += step_y) {
+            if (game->board[j][i] != NULL) return 1; //not a valid movement
+        }
     }
     return 0; //valid movement
 }
@@ -762,6 +772,7 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                             if (game->board[pos1->y][pos1->x] != NULL && game->board[pos1->y][pos1->x]->color == game->player) {
                                 draw_board(renderer, pawn_font, render_image, game);
                                 highlight_pawn(renderer, pos1);
+                                preview_moves(renderer, game, pos1);
                             } else {
                                 free(pos1);
                                 pos1 = NULL;
@@ -1007,4 +1018,46 @@ int eval_intention(Game *game, Case *pos) {
     if (game->board[pos->y][pos->x] == NULL) return 0;
     if (game->board[pos->y][pos->x]->color != game->player) return 1;
     return -1;
+}
+
+/**
+ * \brief Preview possible movements
+ * \param renderer: the renderer where the movements are previewed
+ * \param game: the game where the movements are previewed
+ * \param pos: the position of the pawn
+ */
+void preview_moves(SDL_Renderer *renderer, Game *game, Case *pos) {
+    int margin = 10;
+    int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
+    SDL_Rect rect;
+    SDL_SetRenderDrawColor(renderer, 100, 255, 100, 50); // Green for moves
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            Movement movement = {{pos->x, pos->y}, {i, j}};
+            if (is_valid_move(game, &movement) == 0) {
+                rect.x = 2*margin + i*(rect_size + margin);
+                rect.y = 2*margin + j*(rect_size + margin);
+                rect.w = rect_size;
+                rect.h = rect_size;
+                SDL_RenderFillRect(renderer, &rect);
+            }
+        }
+    }
+    SDL_SetRenderDrawColor(renderer, 255, 100, 100, 50); // Red for questions
+    for (int i = -1; i <= 1; i++) {
+        for (int j = -1; j <= 1; j++) {
+            int x = pos->x + j;
+            int y = pos->y + i;
+            if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                if (game->board[y][x] != NULL && game->board[y][x]->color != game->player) {
+                    rect.x = 2*margin + x*(rect_size + margin);
+                    rect.y = 2*margin + y*(rect_size + margin);
+                    rect.w = rect_size;
+                    rect.h = rect_size;
+                    SDL_RenderFillRect(renderer, &rect);
+                }
+            }
+        }
+    }
+    SDL_RenderPresent(renderer);
 }

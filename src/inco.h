@@ -65,5 +65,6 @@ void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game 
 Case *handle_click(Game *game, int x, int y);
 void highlight_pawn(SDL_Renderer *renderer, Case *selected);
 int eval_intention(Game *game, Case *pos);
+void preview_moves(SDL_Renderer *renderer, Game *game, Case *pos);
 
 #endif // BRUH_H

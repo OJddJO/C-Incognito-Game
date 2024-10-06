@@ -816,6 +816,9 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     if (game->player == WHITE) game->player = BLACK;
                                     else game->player = WHITE;
                                     redraw_all = true;
+                                } else {
+                                    free(pos2);
+                                    pos2 = NULL;
                                 }
                             } else {
                                 free(pos2);

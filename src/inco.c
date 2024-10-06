@@ -2,7 +2,7 @@
 
 /*Main function*/
 int main(int argc, char *argv[]) {
-    bool graphical = false, save = false, load = false;
+    bool graphical = false, render_image = true, save = false, load = false;
     char *save_file;
     FILE *load_file;
     char *load_file_name;
@@ -13,25 +13,30 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "-g") == 0) {
             graphical = true;
         }
+        if (strcmp(argv[i], "-i") == 0) {
+            render_image = true;
+        }
+        if (strcmp(argv[i], "-t") == 0) {
+            render_image = false;
+        }
         if (strcmp(argv[i], "-s") == 0) {
             printf("Saving game to '%s'\n", argv[i+1]);
             save = true;
-            save_file = argv[i+1];
+            save_file = argv[++i];
             FILE *file = fopen(save_file, "w");
             if (file == NULL) {
-                printf("Error: could not open file '%s'\n", argv[i+1]);
+                printf("Error: could not open file '%s'\n", argv[i]);
                 return 1;
             }
             fclose(file);
-            i++;
         }
         if (strcmp(argv[i], "-c") == 0) {
             printf("Loading game from '%s'\n", argv[i+1]);
             load = true;
-            load_file_name = argv[i+1];
-            load_file = fopen(argv[i+1], "r");
+            load_file_name = argv[++i];
+            load_file = fopen(argv[i], "r");
             if (load_file == NULL) {
-                printf("Error: could not open file '%s'\n", argv[i+1]);
+                printf("Error: could not open file '%s'\n", argv[i]);
                 return 1;
             }
             i++;
@@ -39,11 +44,14 @@ int main(int argc, char *argv[]) {
         if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
             printf("Usage: %s [-a | -g] [-s save_file] [-c load_file]\n", argv[0]);
             printf("Options:\n");
-            printf("  -h, --help: Display this help message\n");
-            printf("  -a: ASCII mode (default)\n");
-            printf("  -g: Graphical mode\n");
-            printf("  -s save_file: Save the game to save_file\n");
-            printf("  -c load_file: Load the game from load_file\n");
+            printf("    -h, --help: Display this help message\n");
+            printf("    -a: ASCII mode (default)\n");
+            printf("    -g [-i | -t]: Graphical mode\n");
+            printf("    Options:\n");
+            printf("        -i: Use images to render pawns (default)\n");
+            printf("        -t: Use text to render pawns\n");
+            printf("    -s save_file: Save the game to save_file\n");
+            printf("    -c load_file: Load the game from load_file\n");
             return 0;
         }
     }
@@ -56,7 +64,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (graphical) {
-        graphical_game(save, save_file, load, load_file);
+        graphical_game(render_image, save, save_file, load, load_file);
     } else {
         cmd_game(save, save_file, load, load_file);
     }
@@ -646,104 +654,8 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) { //question a paw
 }
 
 /********************************************************
- * Graphical functions***********************************
+ * Graphical functions **********************************
  ********************************************************/
-
-// /**
-//  * \brief Initializes the window
-//  * \param window: the window to initialize
-//  * \param renderer: the renderer to initialize
-//  */
-// void init_window(SDL_Window *window, SDL_Renderer *renderer) {
-//     SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
-//     SDL_RenderFillRect(renderer, NULL);
-//     SDL_UpdateWindowSurface(window);
-//     SDL_RenderPresent(renderer);
-// }
-
-/**
- * \brief Draws the board
- * \param renderer: the renderer where to draw the board
- * \param game: the game to draw
- */
-void draw_board(SDL_Renderer *renderer, Game *game) {
-    SDL_Rect rect;
-    TTF_Font *font = TTF_OpenFont("righteous.ttf", 52/BOARD_SIZE*5);
-    if (font == NULL) {
-        fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
-        return;
-    }
-    SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
-    SDL_RenderFillRect(renderer, NULL);
-    int margin = 10;
-    int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
-    for (int i = 0; i < BOARD_SIZE; i++) {
-        for (int j = 0; j < BOARD_SIZE; j++) {
-            rect.x = 2*margin + i*(rect_size + margin);
-            rect.y = 2*margin + j*(rect_size + margin);
-            rect.w = rect_size;
-            rect.h = rect_size;
-            SDL_SetRenderDrawColor(renderer, 30, 30, 50, 255);
-            SDL_RenderFillRect(renderer, &rect);
-            rect.x += margin;
-            rect.y += margin;
-            rect.w -= 2*margin;
-            rect.h -= 2*margin;
-            if (game->board[j][i] == NULL) {
-                SDL_Color text_color;
-                bool is_black_base = (i == 0 && j == BOARD_SIZE-1);
-                bool is_white_base = (i == BOARD_SIZE-1 && j == 0);
-                if (is_black_base) {
-                    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-                    text_color.r = 220;
-                    text_color.g = 220;
-                    text_color.b = 220;
-                }
-                else if (is_white_base) {
-                    SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
-                    text_color.r = 50;
-                    text_color.g = 50;
-                    text_color.b = 50;
-                }
-                if (is_black_base || is_white_base) {
-                    SDL_RenderFillRect(renderer, &rect);
-                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", text_color);
-                    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-                    SDL_Rect text_rect = {rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
-                    SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
-                    SDL_FreeSurface(text_surface);
-                    SDL_DestroyTexture(text_texture);
-                }
-            } else {
-                SDL_Color text_color;
-                if (game->board[j][i]->color == WHITE) {
-                    SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
-                    text_color.r = 50;
-                    text_color.g = 50;
-                    text_color.b = 50;
-                } else {
-                    SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
-                    text_color.r = 220;
-                    text_color.g = 220;
-                    text_color.b = 220;
-                }
-                SDL_RenderFillRect(renderer, &rect);
-                SDL_Surface *text_surface = TTF_RenderText_Solid(font, "P", text_color);
-                SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-                SDL_Rect text_rect;
-                text_rect.x = rect.x + (rect.w - text_surface->w)/2;
-                text_rect.y = rect.y + (rect.h - text_surface->h)/2;
-                text_rect.w = text_surface->w;
-                text_rect.h = text_surface->h;
-                SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
-                SDL_FreeSurface(text_surface);
-                SDL_DestroyTexture(text_texture);
-            }
-        }
-    }
-    TTF_CloseFont(font);
-    SDL_RenderPresent(renderer);
-}
 
 /**
  * \brief Starts a game in graphical mode
@@ -752,7 +664,7 @@ void draw_board(SDL_Renderer *renderer, Game *game) {
  * \param load: whether to load a game
  * \param load_file: the file where to load the game
  */
-void graphical_game(bool save, char *save_file, bool load, FILE *load_file) {
+void graphical_game(bool render_image, bool save, char *save_file, bool load, FILE *load_file) {
     Game *game = (Game *)malloc(sizeof(Game));
     init_game(game);
     init_pawns(game);
@@ -776,12 +688,177 @@ void graphical_game(bool save, char *save_file, bool load, FILE *load_file) {
         fprintf(stderr, "Error: could not create renderer: %s\n", SDL_GetError());
         return;
     }
-    // init_window(window, renderer);
-    draw_board(renderer, game);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+    TTF_Font *pawn_font = TTF_OpenFont("righteous.ttf", 52/BOARD_SIZE*5);
+    if (pawn_font == NULL) {
+        fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
+        return;
+    }
 
-    SDL_Delay(3000);
+    // init_window(window, renderer);
+    bool quit = false, redraw_all = true;
+    SDL_Event event;
+    Case *pos1 = NULL, *pos2 = NULL;
+    while (!quit) {
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_QUIT:
+                    quit = true;
+                    break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        pos1 = handle_click(game, event.button.x, event.button.y);
+                        draw_board(renderer, pawn_font, render_image, game);
+                        highlight_pawn(renderer, pos1);
+                        free(pos1);
+                    } else if (event.button.button == SDL_BUTTON_RIGHT) {
+                        pos1 = NULL, pos2 = NULL;
+                        draw_board(renderer, pawn_font, render_image, game);
+                    }
+            }
+        }
+        if (redraw_all) {
+            draw_board(renderer, pawn_font, render_image, game);
+            redraw_all = false;
+        }
+    }
 
     //close everything
+    free_board(game);
+    TTF_CloseFont(pawn_font);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+    TTF_Quit();
+    SDL_Quit();
+}
+
+// /**
+//  * \brief Initializes the window
+//  * \param window: the window to initialize
+//  * \param renderer: the renderer to initialize
+//  */
+// void init_window(SDL_Window *window, SDL_Renderer *renderer) {
+//     SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
+//     SDL_RenderFillRect(renderer, NULL);
+//     SDL_UpdateWindowSurface(window);
+//     SDL_RenderPresent(renderer);
+// }
+
+/**
+ * \brief Draws the board
+ * \param renderer: the renderer where to draw the board
+ * \param font: the font to use
+ * \param render_image: whether to render the image
+ * \param game: the game to draw
+ */
+void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game *game) {
+    SDL_Rect rect;
+    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
+    SDL_RenderFillRect(renderer, NULL);
+    int margin = 10;
+    int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
+    for (int i = 0; i < BOARD_SIZE; i++) {
+        for (int j = 0; j < BOARD_SIZE; j++) {
+            rect = (SDL_Rect){2*margin + i*(rect_size + margin), 2*margin + j*(rect_size + margin), rect_size, rect_size};
+            SDL_SetRenderDrawColor(renderer, 30, 30, 50, 255);
+            SDL_RenderFillRect(renderer, &rect);
+            rect = (SDL_Rect){rect.x + margin, rect.y + margin, rect.w - 2*margin, rect.h - 2*margin};
+            if (game->board[j][i] == NULL) {
+                SDL_Color text_color;
+                bool is_black_base = (i == 0 && j == BOARD_SIZE-1);
+                bool is_white_base = (i == BOARD_SIZE-1 && j == 0);
+                if (!render_image) {
+                    if (is_black_base) {
+                        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+                        text_color = (SDL_Color){220, 220, 220};
+                    } else if (is_white_base) {
+                        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+                        text_color = (SDL_Color){50, 50, 50};
+                    }
+                }
+                if (is_black_base || is_white_base) {
+                    if (render_image) {
+                        SDL_Surface *image_surface = IMG_Load("assets/castle.png");
+                        SDL_Texture *image_texture = SDL_CreateTextureFromSurface(renderer, image_surface);
+                        if (is_black_base) SDL_SetTextureColorMod(image_texture, 80, 80, 80);
+                        else SDL_SetTextureColorMod(image_texture, 220, 220, 220);
+                        SDL_RenderCopy(renderer, image_texture, NULL, &rect);
+                        SDL_FreeSurface(image_surface);
+                        SDL_DestroyTexture(image_texture);
+                    } else {
+                        SDL_RenderFillRect(renderer, &rect);
+                        SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", text_color);
+                        SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+                        SDL_Rect text_rect = {rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
+                        SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+                        SDL_FreeSurface(text_surface);
+                        SDL_DestroyTexture(text_texture);
+                    }
+                }
+            } else {
+                if (render_image) {
+                    SDL_Surface *image_surface = IMG_Load("assets/pawn.png");
+                    SDL_Texture *image_texture = SDL_CreateTextureFromSurface(renderer, image_surface);
+                    if (game->board[j][i]->color == BLACK) SDL_SetTextureColorMod(image_texture, 80, 80, 80);
+                    else SDL_SetTextureColorMod(image_texture, 220, 220, 220);
+                    SDL_RenderCopy(renderer, image_texture, NULL, &rect);
+                    SDL_FreeSurface(image_surface);
+                    SDL_DestroyTexture(image_texture);
+                } else {
+                    SDL_Color text_color;
+                    if (game->board[j][i]->color == WHITE) {
+                        SDL_SetRenderDrawColor(renderer, 220, 220, 220, 255);
+                        text_color = (SDL_Color){50, 50, 50};
+                    } else {
+                        SDL_SetRenderDrawColor(renderer, 50, 50, 50, 255);
+                        text_color = (SDL_Color){220, 220, 220};
+                    }
+                    SDL_RenderFillRect(renderer, &rect);
+                    SDL_Surface *text_surface = TTF_RenderText_Solid(font, "P", text_color);
+                    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+                    SDL_Rect text_rect = (SDL_Rect){rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
+                    SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+                    SDL_FreeSurface(text_surface);
+                    SDL_DestroyTexture(text_texture);
+                }
+            }
+        }
+    }
+    SDL_RenderPresent(renderer);
+}
+
+/**
+ * \brief Handles the mouse click
+ * \param game: the game where the click is done
+ * \param x: the x position of the click
+ * \param y: the y position of the click
+ */
+Case *handle_click(Game *game, int x, int y) {
+    int margin = 10;
+    int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
+    int i = (x - margin)/(rect_size + margin);
+    int j = (y - margin)/(rect_size + margin);
+    Case *pos = (Case *)malloc(sizeof(Case));
+    pos->x = i - 1*(i>=BOARD_SIZE);
+    pos->y = j - 1*(j>=BOARD_SIZE);
+    return pos;
+}
+
+/**
+ * \brief Highlights a pawn
+ * \param renderer: the renderer where to highlight the pawn
+ * \param selected: the position of the pawn to highlight
+ */
+void highlight_pawn(SDL_Renderer *renderer, Case *selected) {
+    int margin = 10;
+    int rect_size = (WIN_SIZE - 3*margin)/BOARD_SIZE - margin;
+    SDL_Rect rect;
+    rect.x = 2*margin + selected->x*(rect_size + margin);
+    rect.y = 2*margin + selected->y*(rect_size + margin);
+    rect.w = rect_size;
+    rect.h = rect_size;
+    SDL_SetRenderDrawColor(renderer, 220, 220, 220, 50);
+    SDL_RenderFillRect(renderer, &rect);
+    SDL_RenderPresent(renderer);
 }

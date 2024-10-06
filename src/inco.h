@@ -57,8 +57,10 @@ void print_board(Game *game);
 Movement *cmd_get_movement(Game *game);
 int cmd_question_pawn(Game *game, bool save, char *save_file);
 
-void graphical_game(bool save, char *save_file, bool load, FILE *load_file);
+void graphical_game(bool render_image, bool save, char *save_file, bool load, FILE *load_file);
 // void init_window(SDL_Window *window, SDL_Renderer *renderer);
-void draw_board(SDL_Renderer *renderer, Game *game);
+void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game *game);
+Case *handle_click(Game *game, int x, int y);
+void highlight_pawn(SDL_Renderer *renderer, Case *selected);
 
 #endif // BRUH_H

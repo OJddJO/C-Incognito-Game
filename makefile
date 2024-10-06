@@ -3,7 +3,6 @@ CFLAGS = -Wall -g
 
 inco:
 	$(CC) $(CFLAGS) -o .\bin\inco.exe .\src\inco.c -I include -L lib -lmingw32 -lSDL2main -lSDL2 -lSDL2_ttf -lSDL2_image
-	cd .\bin
 
 clean:
 ifeq ($(OS),Windows_NT)

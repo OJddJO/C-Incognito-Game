@@ -82,7 +82,6 @@ Game *init_game(Game *game) {
     game->player = WHITE;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
-            // Pawn *pawn = (Pawn *)malloc(sizeof(Pawn));
             game->board[i][j] = NULL;
         }
     }
@@ -732,7 +731,7 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
         fprintf(stderr, "Error: could not create window: %s\n", SDL_GetError());
         return;
     }
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, (Uint32)SDL_RENDERER_ACCELERATED);
     if (renderer == NULL) {
         fprintf(stderr, "Error: could not create renderer: %s\n", SDL_GetError());
         return;
@@ -745,11 +744,6 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
             fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
             return;
         }
-    }
-    TTF_Font *font = TTF_OpenFont("righteous.ttf", 24);
-    if (font == NULL) {
-        fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
-        return;
     }
 
     // init_window(window, renderer);
@@ -789,7 +783,6 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     move_pawn(game, movement, save, save_file);
                                     win = check_win(game, save, save_file);
                                     if (win != 0) quit = true;
-                                    free(movement);
                                     free(pos1);
                                     free(pos2);
                                     pos1 = NULL, pos2 = NULL;
@@ -800,6 +793,7 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     free(pos2);
                                     pos2 = NULL;
                                 }
+                                free(movement);
                             } else if (intent == 1) {
                                 if (is_adjacent(pos1->x, pos1->y, pos2->x, pos2->y)) {
                                     if (save) save_question(save_file, pos2->x, pos2->y, pos1->x, pos1->y);
@@ -842,6 +836,11 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
         SDL_Texture *text_texture;
         SDL_Rect text_rect;
         SDL_SetRenderDrawColor(renderer, 20, 20, 40, 255);
+        TTF_Font *font = TTF_OpenFont("righteous.ttf", 24);
+        if (font == NULL) {
+            fprintf(stderr, "Error: could not load font: %s\n", TTF_GetError());
+            return;
+        }
         if (win == 1) {
             text_surface = TTF_RenderText_Solid(font, "Black wins !", (SDL_Color){255, 255, 255});
             text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
@@ -857,6 +856,7 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
         SDL_FreeSurface(text_surface);
         SDL_DestroyTexture(text_texture);
         SDL_RenderPresent(renderer);
+        TTF_CloseFont(font);
         bool quit = false;
         while (!quit) {
             while (SDL_PollEvent(&event)) {
@@ -871,6 +871,7 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     TTF_Quit();
+    IMG_Quit();
     SDL_Quit();
 }
 
@@ -920,23 +921,23 @@ void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game 
                     }
                 }
                 if (is_black_base || is_white_base) {
+                    SDL_Surface *surface;
+                    SDL_Texture *texture;
                     if (render_image) {
-                        SDL_Surface *image_surface = IMG_Load("assets/castle.png");
-                        SDL_Texture *image_texture = SDL_CreateTextureFromSurface(renderer, image_surface);
-                        if (is_black_base) SDL_SetTextureColorMod(image_texture, 80, 80, 80);
-                        else SDL_SetTextureColorMod(image_texture, 220, 220, 220);
-                        SDL_RenderCopy(renderer, image_texture, NULL, &rect);
-                        SDL_FreeSurface(image_surface);
-                        SDL_DestroyTexture(image_texture);
+                        surface = IMG_Load("assets/castle.png");
+                        texture = SDL_CreateTextureFromSurface(renderer, surface);
+                        if (is_black_base) SDL_SetTextureColorMod(texture, 80, 80, 80);
+                        else SDL_SetTextureColorMod(texture, 220, 220, 220);
+                        SDL_RenderCopy(renderer, texture, NULL, &rect);
                     } else {
                         SDL_RenderFillRect(renderer, &rect);
-                        SDL_Surface *text_surface = TTF_RenderText_Solid(font, "X", text_color);
-                        SDL_Texture *text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-                        SDL_Rect text_rect = {rect.x + (rect.w - text_surface->w)/2, rect.y + (rect.h - text_surface->h)/2, text_surface->w, text_surface->h};
-                        SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
-                        SDL_FreeSurface(text_surface);
-                        SDL_DestroyTexture(text_texture);
+                        surface = TTF_RenderText_Solid(font, "X", text_color);
+                        texture = SDL_CreateTextureFromSurface(renderer, surface);
+                        SDL_Rect text_rect = {rect.x + (rect.w - surface->w)/2, rect.y + (rect.h - surface->h)/2, surface->w, surface->h};
+                        SDL_RenderCopy(renderer, texture, NULL, &text_rect);
                     }
+                    SDL_FreeSurface(surface);
+                    SDL_DestroyTexture(texture);
                 }
             } else {
                 if (render_image) {

@@ -23,7 +23,7 @@ typedef struct _pawn {
 } Pawn;
 
 typedef struct _game {
-    Pawn * board[BOARD_SIZE][BOARD_SIZE];
+    Pawn *board[BOARD_SIZE][BOARD_SIZE];
     Color player;
 } Game;
 
@@ -35,7 +35,7 @@ typedef struct _movement {
     Case start, end;
 } Movement;
 
-Game *init_game(Game *game);
+void init_game(Game *game);
 int ediv(int a, int b);
 void init_pawns(Game *game);
 void move_pawn(Game *game, Movement *movement, bool save, char *save_file);

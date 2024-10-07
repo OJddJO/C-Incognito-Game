@@ -78,14 +78,13 @@ int main(int argc, char *argv[]) {
  * \param game: the game struct to initialize
  * \return initialized game struct
  */
-Game *init_game(Game *game) {
+void init_game(Game *game) {
     game->player = WHITE;
     for (int i = 0; i < BOARD_SIZE; i++) {
         for (int j = 0; j < BOARD_SIZE; j++) {
             game->board[i][j] = NULL;
         }
     }
-    return game;
 }
 
 /**
@@ -166,7 +165,6 @@ void free_board(Game *game) {
             if (game->board[i][j] != NULL) free(game->board[i][j]);
         }
     }
-    free(game);
 }
 
 /**
@@ -431,14 +429,14 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
                 int sy = y - '1';
                 int ex = x_ - 'a'; //movement end
                 int ey = y_ - '1';
-                Movement *movement = (Movement *)malloc(sizeof(Movement));
+                Movement mov_obj;
+                Movement *movement = &mov_obj;
                 movement->start.x = sx;
                 movement->start.y = sy;
                 movement->end.x = ex;
                 movement->end.y = ey;
                 move_pawn(game, movement, save, save_file);
                 printf("Moved pawn from (%d, %d) to (%d, %d)\n", sx, sy, ex, ey);
-                free(movement);
             }
             else if (line[0] == 'I') { //question
                 sscanf(line, "I %c%c->%c%c", &x, &y, &x_, &y_);
@@ -494,7 +492,8 @@ void init_save(char *save_file, Game *game) {
  * \param load_file: the file where to load the game
  */
 void cmd_game(bool save, char *save_file, bool load, FILE *load_file) {
-    Game *game = (Game *)malloc(sizeof(Game));
+    Game game_obj;
+    Game *game = &game_obj;
     init_game(game);
     init_pawns(game);
 
@@ -705,7 +704,8 @@ int cmd_question_pawn(Game *game, bool save, char *save_file) {
  * \param load_file: the file where to load the game
  */
 void graphical_game(bool render_image, bool save, char *save_file, bool load, FILE *load_file) {
-    Game *game = (Game *)malloc(sizeof(Game));
+    Game game_obj;
+    Game *game = &game_obj;
     init_game(game);
     init_pawns(game);
 
@@ -773,7 +773,8 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                             pos2 = handle_click(game, event.button.x, event.button.y);
                             int intent = eval_intention(game, pos2);
                             if (intent == 0) {
-                                Movement *movement = (Movement *)malloc(sizeof(Movement));
+                                Movement mov_obj;
+                                Movement *movement = &mov_obj;
                                 movement->start.x = pos1->x;
                                 movement->start.y = pos1->y;
                                 movement->end.x = pos2->x;
@@ -787,7 +788,6 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     else game->player = WHITE;
                                     redraw_all = true;
                                 }
-                                free(movement);
                             } else if (intent == 1) {
                                 if (is_adjacent(pos1->x, pos1->y, pos2->x, pos2->y)) {
                                     if (save) save_question(save_file, pos2->x, pos2->y, pos1->x, pos1->y);

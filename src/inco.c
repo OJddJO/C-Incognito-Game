@@ -783,15 +783,9 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                     move_pawn(game, movement, save, save_file);
                                     win = check_win(game, save, save_file);
                                     if (win != 0) quit = true;
-                                    free(pos1);
-                                    free(pos2);
-                                    pos1 = NULL, pos2 = NULL;
                                     if (game->player == WHITE) game->player = BLACK;
                                     else game->player = WHITE;
                                     redraw_all = true;
-                                } else {
-                                    free(pos2);
-                                    pos2 = NULL;
                                 }
                                 free(movement);
                             } else if (intent == 1) {
@@ -802,20 +796,14 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                                         if (save) save_win(save_file, win);
                                         quit = true;
                                     }
-                                    free(pos1);
-                                    free(pos2);
-                                    pos1 = NULL, pos2 = NULL;
                                     if (game->player == WHITE) game->player = BLACK;
                                     else game->player = WHITE;
                                     redraw_all = true;
-                                } else {
-                                    free(pos2);
-                                    pos2 = NULL;
                                 }
-                            } else {
-                                free(pos2);
-                                pos2 = NULL;
                             }
+                            free(pos1);
+                            free(pos2);
+                            pos1 = NULL, pos2 = NULL;
                         }
                     } else if (event.button.button == SDL_BUTTON_RIGHT) {
                         if (pos1 != NULL) free(pos1);

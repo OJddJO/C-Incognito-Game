@@ -429,12 +429,8 @@ bool read_save(FILE *fptr, Game *game, bool save, char *save_file) {
                 int sy = y - '1';
                 int ex = x_ - 'a'; //movement end
                 int ey = y_ - '1';
-                Movement mov_obj;
+                Movement mov_obj = (Movement){{sx, sy}, {ex, ey}};
                 Movement *movement = &mov_obj;
-                movement->start.x = sx;
-                movement->start.y = sy;
-                movement->end.x = ex;
-                movement->end.y = ey;
                 move_pawn(game, movement, save, save_file);
                 printf("Moved pawn from (%d, %d) to (%d, %d)\n", sx, sy, ex, ey);
             }
@@ -773,12 +769,8 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
                             pos2 = handle_click(game, event.button.x, event.button.y);
                             int intent = eval_intention(game, pos2);
                             if (intent == 0) {
-                                Movement mov_obj;
+                                Movement mov_obj = (Movement){{pos1->x, pos1->y}, {pos2->x, pos2->y}};
                                 Movement *movement = &mov_obj;
-                                movement->start.x = pos1->x;
-                                movement->start.y = pos1->y;
-                                movement->end.x = pos2->x;
-                                movement->end.y = pos2->y;
                                 int valid = is_valid_move(game, movement);
                                 if (valid == 0) {
                                     move_pawn(game, movement, save, save_file);

@@ -189,7 +189,7 @@ int is_valid_move(Game *game, Movement *movement) {
     Pawn *start = game->board[y][x];
     Pawn *end = game->board[y_][x_];
     if (start == NULL) return 3; //no pawn at this position
-    else if ((start->color == BLACK && (x_ == 0 && y_ == 4)) || (start->color == WHITE && (x_ == 4 && y_ == 0))) return 2; //cannot move to self's base
+    else if ((start->color == BLACK && (x_ == 0 && y_ == BOARD_SIZE-1)) || (start->color == WHITE && (x_ == BOARD_SIZE-1 && y_ == 0))) return 2; //cannot move to self's base
     else if (start->color != game->player) return 4; //cannot move opponent's pawn
     else if (end != NULL) return 5; //cannot move to a taken spot
     // pawn can only move like a queen in chess
@@ -855,8 +855,8 @@ void graphical_game(bool render_image, bool save, char *save_file, bool load, FI
         SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
         SDL_FreeSurface(text_surface);
         SDL_DestroyTexture(text_texture);
-        SDL_RenderPresent(renderer);
         TTF_CloseFont(font);
+        SDL_RenderPresent(renderer);
         bool quit = false;
         while (!quit) {
             while (SDL_PollEvent(&event)) {
@@ -921,8 +921,8 @@ void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game 
                     }
                 }
                 if (is_black_base || is_white_base) {
-                    SDL_Surface *surface;
-                    SDL_Texture *texture;
+                    SDL_Surface *surface = NULL;
+                    SDL_Texture *texture = NULL;
                     if (render_image) {
                         surface = IMG_Load("assets/castle.png");
                         texture = SDL_CreateTextureFromSurface(renderer, surface);
@@ -936,8 +936,8 @@ void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game 
                         SDL_Rect text_rect = {rect.x + (rect.w - surface->w)/2, rect.y + (rect.h - surface->h)/2, surface->w, surface->h};
                         SDL_RenderCopy(renderer, texture, NULL, &text_rect);
                     }
-                    SDL_FreeSurface(surface);
                     SDL_DestroyTexture(texture);
+                    SDL_FreeSurface(surface);
                 }
             } else {
                 if (render_image) {
@@ -946,8 +946,8 @@ void draw_board(SDL_Renderer *renderer, TTF_Font *font, bool render_image, Game 
                     if (game->board[j][i]->color == BLACK) SDL_SetTextureColorMod(image_texture, 80, 80, 80);
                     else SDL_SetTextureColorMod(image_texture, 220, 220, 220);
                     SDL_RenderCopy(renderer, image_texture, NULL, &rect);
-                    SDL_FreeSurface(image_surface);
                     SDL_DestroyTexture(image_texture);
+                    SDL_FreeSurface(image_surface);
                 } else {
                     SDL_Color text_color;
                     if (game->board[j][i]->color == WHITE) {

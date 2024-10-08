@@ -216,27 +216,23 @@ int is_valid_move(Game *game, Movement *movement) {
 }
 
 /**
- * \brief Checks if there is a pawn adjacent to the given position
+ * \brief Checks if there is any pawn orthogonally adjacent to the given position
  * \param game: the game where the pawn is checked
  * \param x: the x position of the pawn
  * \param y: the y position of the pawn
  * \return true if there is a pawn adjacent to the given position,
  *         false otherwise
  */
-bool pawn_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacent to the given position
-    for (int i = -1; i <= 1; i++) {
-        for (int j = -1; j <= 1; j++) {
-            if (x+j >= 0 && x+j < BOARD_SIZE && y+i >= 0 && y+i < BOARD_SIZE) {
-                Pawn *pawn = game->board[y+i][x+j];
-                if (pawn != NULL) if (pawn->color == game->player) return true;
-            }
-        }
-    }
+bool pawn_adjacent(Game *game, int x, int y) {
+    if (x > 0 && game->board[y][x-1] != NULL) return true;
+    if (x < BOARD_SIZE-1 && game->board[y][x+1] != NULL) return true;
+    if (y > 0 && game->board[y-1][x] != NULL) return true;
+    if (y < BOARD_SIZE-1 && game->board[y+1][x] != NULL) return true;
     return false;
 }
 
 /**
- * \brief Checks if two positions are adjacent
+ * \brief Checks if two positions are orthogonally adjacent
  * \param x: the x position of the first pawn
  * \param y: the y position of the first pawn
  * \param x_: the x position of the second pawn
@@ -245,8 +241,9 @@ bool pawn_adjacent(Game *game, int x, int y) { //check if there's a pawn adjacen
  *         false otherwise
  */
 bool is_adjacent(int x, int y, int x_, int y_) {
-    if (x-x_ > 1 || x-x_ < -1 || y-y_ > 1 || y-y_ < -1) return false;
-    return true;
+    if (x == x_ && (y == y_+1 || y == y_-1)) return true;
+    if (y == y_ && (x == x_+1 || x == x_-1)) return true;
+    return false;
 }
 
 /**
@@ -1031,7 +1028,7 @@ void preview_moves(SDL_Renderer *renderer, Game *game, Case *pos) {
             int x = pos->x + j;
             int y = pos->y + i;
             if (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
-                if (game->board[y][x] != NULL && game->board[y][x]->color != game->player) {
+                if (is_adjacent(pos->x, pos->y, x, y) && game->board[y][x] != NULL && game->board[y][x]->color != game->player) {
                     rect.x = 2*margin + x*(rect_size + margin);
                     rect.y = 2*margin + y*(rect_size + margin);
                     rect.w = rect_size;

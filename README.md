@@ -1,13 +1,13 @@
 # C-Incognito-Game
 
 ## Knights and Spy
-Each player has one pawn (and only one) marked on its hidden side with a sign of allegiance to their castle. This pawn is referred to as the spy. The other N - 1 pawns of the player are knights who have pledged allegiance to the same lord.
+Each player has one pawn (and only one) marked on its hidden side with a sign of allegiance to their castle. This pawn is referred to as the spy. The other pawns of the player are knights who have pledged allegiance to the same lord.
 
 ## Objective of the Game
 The objective of the game is to get your spy into the opponent's castle or to discover the enemy spy.
 
 ## Starting Position
-At the beginning of the game, the board contains N black pawns and N white pawns placed in the opposite corners of the board, respectively protecting the castles. Players do not know the initial position of their spy or the opponent's spy. For this reason, each player's spy pawn is chosen at random from among their five pawns.
+At the beginning of the game, the board contains black pawns and white pawns placed in the opposite corners of the board, respectively protecting the castles. Players do not know the initial position of their spy or the opponent's spy. For this reason, each player's spy pawn is chosen at random from among their pawns.
 
 ## Game Progression
 The first player to play is chosen at random. Each player, in turn, can choose between one (and only one) of the two types of moves:
